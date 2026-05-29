@@ -1,0 +1,443 @@
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --accent: #5a67d8;
+  --accent-alt: #22543d;
+  --card: #fff;
+  --muted: #f7fafc;
+  --muted-alt: #e6f0f7;
+  --text-secondary: #444;
+  --text-accent: #5a67d8;
+  --text-accent-alt: #22543d;
+  --border: #e2e8f0;
+  --text-on-accent: #fff;
+}
+
+body.high-contrast {
+  --background: #181818;
+  --foreground: #ededed;
+  --accent: #90cdf4;
+  --accent-alt: #38a169;
+  --card: #232323;
+  --muted: #232323;
+  --muted-alt: #232323;
+  --text-secondary: #b0b0b0;
+  --text-accent: #90cdf4;
+  --text-accent-alt: #38a169;
+  --border: #444;
+  --text-on-accent: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+@media (max-width: 1610px) {
+  nav .nav-menu-wrap ul {
+    gap: 0.5rem !important;
+    font-size: 0.95rem !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+  }
+
+  nav .nav-menu-wrap ul li {
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  nav .nav-menu-wrap button,
+  nav .nav-menu-wrap a {
+    font-size: 0.85rem !important;
+    padding: 0.22rem 0.5rem !important;
+    margin-left: 0.08rem !important;
+    margin-right: 0.08rem !important;
+  }
+
+  nav .nav-menu-wrap>div[style*='display: flex'] {
+    gap: 0.3rem !important;
+  }
+
+  nav .nav-menu-wrap>div[style*='display: flex']>button,
+  nav .nav-menu-wrap>div[style*='display: flex']>a {
+    font-size: 0.85rem !important;
+    padding: 0.15rem 0.3rem !important;
+  }
+
+  nav .logo-tagline {
+    font-size: 0.8rem !important;
+  }
+}
+
+@media (max-width: 1400px) {
+  nav .logo-tagline {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  nav .nav-menu-wrap ul {
+    gap: 0.2rem !important;
+    font-size: 0.82rem !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+  }
+
+  nav .nav-menu-wrap ul li {
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  nav .nav-menu-wrap button,
+  nav .nav-menu-wrap a {
+    font-size: 0.75rem !important;
+    padding: 0.12rem 0.22rem !important;
+    margin-left: 0.04rem !important;
+    margin-right: 0.04rem !important;
+  }
+
+  nav .nav-menu-wrap>div[style*='display: flex'] {
+    gap: 0.15rem !important;
+  }
+
+  nav .nav-menu-wrap>div[style*='display: flex']>button,
+  nav .nav-menu-wrap>div[style*='display: flex']>a {
+    font-size: 0.75rem !important;
+    padding: 0.08rem 0.15rem !important;
+  }
+}
+
+/* --- TopBar and high-contrast styles moved from TopBar.tsx --- */
+.topbar-root {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  width: 100%;
+  min-height: 80px;
+  background: #fff;
+}
+
+@supports not (position: sticky) {
+  .topbar-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1200;
+  }
+}
+
+body {
+  font-size: var(--site-font-size, 1em);
+  background: #fff;
+  color: #22543d;
+}
+
+body.high-contrast {
+  background: #222 !important;
+  color: #fff !important;
+}
+
+body.high-contrast .topbar-root,
+body.high-contrast [style*="background: #fff"],
+body.high-contrast [style*="background:#fff"] {
+  background: #222 !important;
+  color: #fff !important;
+}
+
+body.high-contrast [style*="color: #22543d"],
+body.high-contrast [style*="color:#22543d"] {
+  color: #fff !important;
+}
+
+body.high-contrast [style*="border: 1px solid #22543d"],
+body.high-contrast [style*="border:1px solid #22543d"] {
+  border: 1px solid #fff !important;
+}
+
+/* --- End TopBar and high-contrast styles --- */
+
+/* --- CTASection Calendar Styles --- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Calendar color overrides */
+.rbc-calendar,
+.rbc-month-view,
+.rbc-header,
+.rbc-date-cell,
+.rbc-day-bg,
+.rbc-today,
+.rbc-off-range-bg,
+.rbc-selected-cell,
+.rbc-event,
+.rbc-toolbar,
+.rbc-row-content,
+.rbc-row,
+.rbc-month-row,
+.rbc-time-view,
+.rbc-time-header,
+.rbc-time-content,
+.rbc-timeslot-group {
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+}
+
+.rbc-header {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+  font-weight: 700;
+  font-size: 1.05rem !important;
+  padding: 6px 0 !important;
+}
+
+.rbc-today {
+  background: var(--card) !important;
+}
+
+.rbc-selected-cell,
+.rbc-active {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.rbc-date-cell.rbc-now,
+.rbc-date-cell.rbc-current {
+  background: var(--text-accent-alt) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.rbc-off-range {
+  color: var(--text-secondary) !important;
+}
+
+.rbc-toolbar button {
+  background: var(--accent) !important;
+  color: var(--text-on-accent) !important;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  margin: 0 2px;
+  padding: 6px 14px;
+  font-size: 13px !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background: var(--text-accent-alt) !important;
+}
+
+.rbc-event {
+  background: var(--text-accent-alt) !important;
+  color: var(--text-on-accent) !important;
+}
+
+/* Responsive calendar */
+@media (max-width: 900px) {
+  .cta-section>div[role="tabpanel"] {
+    max-width: 98vw !important;
+    padding: 10px !important;
+  }
+
+  .rbc-calendar {
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .cta-section>div[role="tabpanel"] {
+    max-width: 100vw !important;
+    padding: 2px !important;
+  }
+
+  .rbc-calendar {
+    font-size: 10px !important;
+  }
+}
+
+/* --- End CTASection Calendar Styles --- */
+
+/* --- Form Input Styling --- */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+  background-color: #2d3748 !important;
+  color: #ffffff !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  transition: all 0.3s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="datetime-local"]:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="url"]::placeholder,
+input[type="search"]::placeholder,
+textarea::placeholder {
+  color: #a0aec0 !important;
+}
+
+/* High contrast mode form inputs */
+body.high-contrast input[type="text"],
+body.high-contrast input[type="email"],
+body.high-contrast input[type="password"],
+body.high-contrast input[type="number"],
+body.high-contrast input[type="tel"],
+body.high-contrast input[type="url"],
+body.high-contrast input[type="search"],
+body.high-contrast input[type="date"],
+body.high-contrast input[type="time"],
+body.high-contrast input[type="datetime-local"],
+body.high-contrast textarea,
+body.high-contrast select {
+  background-color: #1a202c !important;
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
+}
+
+body.high-contrast input[type="text"]:focus,
+body.high-contrast input[type="email"]:focus,
+body.high-contrast input[type="password"]:focus,
+body.high-contrast input[type="number"]:focus,
+body.high-contrast input[type="tel"]:focus,
+body.high-contrast input[type="url"]:focus,
+body.high-contrast input[type="search"]:focus,
+body.high-contrast input[type="date"]:focus,
+body.high-contrast input[type="time"]:focus,
+body.high-contrast input[type="datetime-local"]:focus,
+body.high-contrast textarea:focus,
+body.high-contrast select:focus {
+  border-color: #90cdf4 !important;
+  box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.1) !important;
+}
+
+body.high-contrast input[type="text"]::placeholder,
+body.high-contrast input[type="email"]::placeholder,
+body.high-contrast input[type="password"]::placeholder,
+body.high-contrast input[type="number"]::placeholder,
+body.high-contrast input[type="tel"]::placeholder,
+body.high-contrast input[type="url"]::placeholder,
+body.high-contrast input[type="search"]::placeholder,
+body.high-contrast textarea::placeholder {
+  color: #cbd5e0 !important;
+}
+
+/* File input styling */
+input[type="file"] {
+  background-color: #2d3748 !important;
+  color: #ffffff !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
+body.high-contrast input[type="file"] {
+  background-color: #1a202c !important;
+  color: #ffffff !important;
+  border: 1px solid #ffffff !important;
+}
+
+/* --- End Form Input Styling --- */
+
+/* width: "100%",
+                    backgroundColor: "#f9fafb !important",
+                    color: "#1f2937  !important",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "6px",
+                    padding: "18px 41px !important",
+                    fontSize: "14px",
+                    transition: "all 0.3s ease",
+                    boxSizing: "border-box" */
+
+
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="tel"], input[type="url"], input[type="search"], input[type="date"], input[type="time"], input[type="datetime-local"], textarea, select {
+    background-color: #f9fafb !important;
+    color: #1f2937 !important;
+    border: 1px solid #4a5568 !important;
+    border-radius: 6px !important;
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+    font-size: 14px !important;
+    transition: all 0.3s ease !important;
+} 
+
+/* Fix admin panel modal inputs text color */
+#consultant-form input, #consultant-form textarea, #consultant-form select {
+  color: #1e293b !important;
+  background-color: #ffffff !important;
+}

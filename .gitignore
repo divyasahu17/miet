@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build and Cache
+.next/
+**/.next/
+.vercel/
+**/.vercel/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Local environment and secret files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Local Databases
+*.sqlite
+*.db
+**/database.sqlite
+
+# Dynamic user uploads
+uploads/
+**/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

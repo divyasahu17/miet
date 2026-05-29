@@ -1,0 +1,1662 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import GoogleAuth from '@/components/GoogleAuth';
+import { useNotifications } from '@/components/NotificationSystem';
+import { getApiUrl } from '@/utils/api';
+import { supabase, getSupabaseAccessToken } from '@/utils/supabase';
+import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaEdit, FaTrash } from 'react-icons/fa';
+import TopBar from '@/components/TopBar';
+import Footer from '@/components/Footer';
+import SearchPanel from '@/components/SearchPanel';
+import { useLocale } from 'next-intl';
+
+interface User {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+}
+
+
+interface Consultation {
+  id: number;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  price: number;
+  status: string;
+  payment_status: string;
+  google_meet_link?: string;
+  google_calendar_event_id?: string;
+  consultant_name?: string;
+  consultant_email?: string;
+}
+
+interface Webinar {
+  id: number;
+  title: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  price: number;
+  is_free: boolean;
+  status: string;
+  google_meet_link?: string;
+  organizer_email?: string;
+}
+
+export default function UserDashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search'>('search');
+  const router = useRouter();
+  const { addNotification } = useNotifications();
+  const locale = useLocale();
+
+  useEffect(() => {
+    checkAuthAndLoadData();
+  }, []);
+
+  const checkAuthAndLoadData = async () => {
+    try {
+      // Check Supabase session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session?.user) {
+        setLoading(false);
+        return;
+      }
+
+      // Map Supabase user to our User interface
+      const supabaseUser = session.user;
+      const fullName = supabaseUser.user_metadata?.full_name ||
+                       supabaseUser.user_metadata?.name ||
+                       supabaseUser.email?.split('@')[0] ||
+                       'User';
+      const nameParts = fullName.split(' ');
+      const first_name = nameParts[0] || '';
+      const last_name = nameParts.slice(1).join(' ') || '';
+
+      const mappedUser: User = {
+        id: parseInt(supabaseUser.id) || 0,
+        first_name,
+        last_name,
+        email: supabaseUser.email || '',
+        phone: supabaseUser.user_metadata?.phone || undefined
+      };
+
+      setUser(mappedUser);
+
+      
+
+      // Get Supabase access token for API calls
+      const token = session.access_token;
+
+      // Load user's consultations
+      await loadConsultations(token);
+
+
+
+
+      await loadPurchases(mappedUser.email);
+
+      // Load upcoming webinars
+      await loadUpcomingWebinars();
+
+      // Check for pending booking redirection
+      const pendingConsultantId = localStorage.getItem('pending_consultant_id');
+      if (pendingConsultantId) {
+        // Redirect to consultations page to resume booking
+        router.push(`/${locale}/services/consultations?consultantId=${pendingConsultantId}`);
+      }
+    } catch (error) {
+      console.error('Error checking auth:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  const loadPurchases = async (email: string) => {
+
+    try {
+
+      const response = await fetch(
+        `${getApiUrl('api/user/purchases')}?email=${email}`
+      );
+
+      if (response.ok) {
+
+        const data = await response.json();
+
+        setPurchases(data.purchases || []);
+
+      }
+
+    } catch (error) {
+
+      console.error("Purchase load error:", error);
+
+    }
+
+  };
+
+
+
+
+
+
+
+
+
+  const loadConsultations = async (token: string) => {
+    try {
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(`${getApiUrl('api/consultations/by-email')}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const data = await response.json();
+
+
+        setConsultations(data.appointments || []);
+      } else {
+        const errorData = await response.json();
+
+      }
+    } catch (error) {
+
+    }
+  };
+
+  const loadUpcomingWebinars = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(`${getApiUrl('api/webinars/public')}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter for upcoming webinars
+        const upcoming = (data.webinars || []).filter((webinar: Webinar) =>
+          new Date(webinar.start_time) > new Date() && webinar.status === 'scheduled'
+        );
+        setUpcomingWebinars(upcoming);
+      }
+    } catch (error) {
+
+    }
+  };
+
+  const handleBookConsultation = () => {
+    router.push('/services/consultations');
+  };
+
+  const handleViewWebinars = () => {
+    router.push('/services/webinars');
+  };
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{
+          fontSize: '18px',
+          color: 'white',
+          fontWeight: '600'
+        }}>
+          Loading Dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '40px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center',
+          maxWidth: '400px',
+          width: '100%'
+        }}>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#333',
+            marginBottom: '16px'
+          }}>
+            Welcome to MIET
+          </h1>
+          <p style={{
+            fontSize: '16px',
+            color: '#666',
+            marginBottom: '32px',
+            lineHeight: '1.5'
+          }}>
+            Please login to access your dashboard and book consultations
+          </p>
+          <GoogleAuth />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <TopBar />
+      <div style={{
+        flex: 1,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px'
+      }}>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          {/* Header */}
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '32px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px'
+            }}>
+              <div>
+                <h1 style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: '#333',
+                  marginBottom: '8px'
+                }}>
+                  Welcome back, {user.first_name}  {user.last_name}
+                </h1>
+                <p style={{
+                  fontSize: '16px',
+                  color: '#666'
+                }}>
+                  Manage your consultations and explore upcoming webinars
+                </p>
+              </div>
+              <GoogleAuth />
+            </div>
+          </div>
+
+          {/* Breadcrumbs Navigation */}
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '20px 32px',
+            marginBottom: '24px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              alignItems: 'center',
+              flexWrap: 'wrap'
+            }}>
+              <button
+                onClick={() => setActiveSection('overview')}
+                style={{
+                  background: activeSection === 'overview' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'overview' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaCalendarAlt />
+                Overview
+              </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('consultations')}
+                style={{
+                  background: activeSection === 'consultations' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'consultations' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaUserMd />
+                My Consultations
+              </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('webinars')}
+                style={{
+                  background: activeSection === 'webinars' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                  color: activeSection === 'webinars' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaVideo />
+                Upcoming Webinars
+              </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('search')}
+                style={{
+                  background: activeSection === 'search' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
+                  color: activeSection === 'search' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaMapMarkerAlt />
+                Consultant Search
+              </button>
+            </div>
+          </div>
+
+          {/* Content based on active section */}
+          {activeSection === 'search' && (
+            <div style={{ marginBottom: '32px' }}>
+              <SearchPanel />
+            </div>
+          )}
+          {activeSection === 'overview' && (
+            <>
+              {/* Quick Actions */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '24px',
+                marginBottom: '32px'
+              }}>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FaUserMd />
+                  </div>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Book Consultation
+                  </h3>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#666',
+                    marginBottom: '16px'
+                  }}>
+                    Schedule a one-on-one session with our expert consultants
+                  </p>
+                  <button
+                    onClick={handleBookConsultation}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Book Now
+                  </button>
+                </div>
+
+                <div style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FaVideo />
+                  </div>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    color: '#333',
+                    marginBottom: '8px'
+                  }}>
+                    Upcoming Webinars
+                  </h3>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#666',
+                    marginBottom: '16px'
+                  }}>
+                    Join our educational webinars and workshops
+                  </p>
+                  <button
+                    onClick={handleViewWebinars}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    View Webinars
+                  </button>
+                </div>
+              </div>
+
+              {/* My Consultations Preview */}
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '32px',
+                marginBottom: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '24px'
+                }}>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: '600',
+                    color: '#333'
+                  }}>
+                    My Consultations
+                  </h2>
+                  <button
+                    onClick={() => setActiveSection('consultations')}
+                    style={{
+                      background: 'transparent',
+                      color: '#667eea',
+                      border: '1px solid #667eea',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    View All
+                  </button>
+                </div>
+
+                {consultations.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: '#666'
+                  }}>
+                    <FaCalendarAlt style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '16px', marginBottom: '16px' }}>No consultations scheduled yet</p>
+                    <button
+                      onClick={handleBookConsultation}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 24px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Book Your First Consultation
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gap: '16px'
+                  }}>
+                    {consultations.slice(0, 2).map((consultation) => (
+                      <div
+                        key={consultation.id}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                          gap: '16px'
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <h3 style={{
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              color: '#333',
+                              marginBottom: '8px'
+                            }}>
+                              {consultation.title}
+                            </h3>
+                            <p style={{
+                              fontSize: '14px',
+                              color: '#666',
+                              marginBottom: '12px'
+                            }}>
+                              {consultation.description}
+                            </p>
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '16px',
+                              fontSize: '14px',
+                              color: '#666'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FaClock />
+                                {new Date(consultation.start_time).toLocaleString()}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FaUserMd />
+                                {consultation.consultant_name || 'Consultant'}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ₹{consultation.price}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            alignItems: 'flex-end'
+                          }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: consultation.status === 'scheduled' ? '#e3f2fd' :
+                                consultation.status === 'confirmed' ? '#e8f5e8' : '#ffebee',
+                              color: consultation.status === 'scheduled' ? '#1976d2' :
+                                consultation.status === 'confirmed' ? '#388e3c' : '#d32f2f'
+                            }}>
+                              {consultation.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          marginTop: '16px',
+                          flexWrap: 'wrap'
+                        }}>
+                          {consultation.google_meet_link && (
+                            <a
+                              href={consultation.google_meet_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: '#e3f2fd',
+                                color: '#1976d2',
+                                textDecoration: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.background = '#bbdefb';
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.background = '#e3f2fd';
+                              }}
+                            >
+                              <FaVideo style={{ fontSize: '14px' }} />
+                              Join Meeting
+                            </a>
+                          )}
+
+                          {consultation.google_calendar_event_id && (
+                            <a
+                              href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(consultation.title)}&dates=${new Date(consultation.start_time).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(consultation.end_time).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(consultation.description)}&location=${consultation.google_meet_link || ''}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: '#e8f5e8',
+                                color: '#388e3c',
+                                textDecoration: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.background = '#c8e6c9';
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.background = '#e8f5e8';
+                              }}
+                            >
+                              <FaCalendarAlt style={{ fontSize: '14px' }} />
+                              Add to Calendar
+                            </a>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              // TODO: Implement edit functionality
+
+                            }}
+                            style={{
+                              background: '#f3e5f5',
+                              color: '#7b1fa2',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#e1bee7';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = '#f3e5f5';
+                            }}
+                          >
+                            <FaEdit style={{ fontSize: '14px' }} />
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to delete this consultation?')) {
+                                try {
+                                  const token = localStorage.getItem('user_jwt');
+                                  if (!token) {
+                                    addNotification({
+                                      type: 'error',
+                                      title: 'Error',
+                                      message: 'Authentication token not found'
+                                    });
+                                    return;
+                                  }
+
+                                  const response = await fetch(`${getApiUrl('api/consultations/by-email')}/${consultation.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                  });
+
+                                  if (response.ok) {
+                                    addNotification({
+                                      type: 'success',
+                                      title: 'Success',
+                                      message: 'Consultation deleted successfully'
+                                    });
+                                    // Reload consultations
+                                    await loadConsultations(token);
+                                  } else {
+                                    const errorData = await response.json();
+                                    addNotification({
+                                      type: 'error',
+                                      title: 'Error',
+                                      message: errorData.message || 'Failed to delete consultation'
+                                    });
+                                  }
+                                } catch (error) {
+
+                                  addNotification({
+                                    type: 'error',
+                                    title: 'Error',
+                                    message: 'Failed to delete consultation'
+                                  });
+                                }
+                              }
+                            }}
+                            style={{
+                              background: '#ffebee',
+                              color: '#d32f2f',
+                              border: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#ffcdd2';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = '#ffebee';
+                            }}
+                          >
+                            <FaTrash style={{ fontSize: '14px' }} />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              {/* Upcoming Webinars Preview */}
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '32px',
+                marginBottom: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '24px'
+                }}>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: '600',
+                    color: '#333'
+                  }}>
+                    Upcoming Webinars
+                  </h2>
+                  <button
+                    onClick={() => setActiveSection('webinars')}
+                    style={{
+                      background: 'transparent',
+                      color: '#10b981',
+                      border: '1px solid #10b981',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    View All
+                  </button>
+                </div>
+
+                {upcomingWebinars.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: '#666'
+                  }}>
+                    <FaVideo style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '16px' }}>No upcoming webinars at the moment</p>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gap: '16px'
+                  }}>
+                    {upcomingWebinars.slice(0, 2).map((webinar) => (
+                      <div
+                        key={webinar.id}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                          gap: '16px'
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <h3 style={{
+                              fontSize: '18px',
+                              fontWeight: '600',
+                              color: '#333',
+                              marginBottom: '8px'
+                            }}>
+                              {webinar.title}
+                            </h3>
+                            <p style={{
+                              fontSize: '14px',
+                              color: '#666',
+                              marginBottom: '12px'
+                            }}>
+                              {webinar.description}
+                            </p>
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '16px',
+                              fontSize: '14px',
+                              color: '#666'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FaClock />
+                                {new Date(webinar.start_time).toLocaleString()}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {webinar.is_free ? 'Free' : `₹${webinar.price}`}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            alignItems: 'flex-end'
+                          }}>
+                            <span style={{
+                              padding: '4px 12px',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              background: '#e8f5e8',
+                              color: '#388e3c'
+                            }}>
+                              {webinar.status}
+                            </span>
+                            {(webinar.is_free || purchases.some(p => Number(p.product_id) === webinar.id && p.payment_status === 'paid')) && webinar.google_meet_link && (
+                              <a
+                                href={webinar.google_meet_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: 'white',
+                                  textDecoration: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                🎥 Join Webinar
+                              </a>
+                            )}
+                            {(!webinar.is_free && !purchases.some(p => Number(p.product_id) === webinar.id && p.payment_status === 'paid')) && (
+                              <button
+                                onClick={() => router.push(`/${locale}/webinars/${webinar.id}/registration`)}
+                                style={{
+                                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                📝 Register Now
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              {/* My Purchased Courses */}
+
+              <div
+                style={{
+                  background: "white",
+                  borderRadius: "16px",
+                  padding: "32px",
+                  marginBottom: "24px",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "600",
+                    color: "#333",
+                    marginBottom: "24px",
+                  }}
+                >
+                  My Purchased Courses
+                </h2>
+
+                {purchases.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#666" }}>
+                    No courses purchased yet
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: "16px" }}>
+                    {purchases.map((course: any, index: number) => (
+                      <div
+                        key={`${course.order_id}-${course.product_id}-${index}`}
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          padding: "20px",
+                          display: "flex",
+                          gap: "20px",
+                          alignItems: "flex-start",
+                          background: "#fafafa",
+                        }}
+                      >
+                        {/* Course Image */}
+                        {course.thumbnail && (
+                          <img
+                            src={`https://api.miet.life${course.thumbnail}`}
+                            alt={course.product_name}
+                            style={{
+                              width: "100px",
+                              height: "100px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        )}
+
+                        <div style={{ flex: 1 }}>
+                          {/* Title */}
+                          <h3
+                            style={{
+                              fontSize: "18px",
+                              fontWeight: "600",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            {course.product_name}
+                          </h3>
+
+                          {/* Description */}
+                          {course.description && (
+                            <p
+                              style={{
+                                color: "#6b7280",
+                                fontSize: "14px",
+                                marginBottom: "8px",
+                              }}
+                            >
+                              {course.description}
+                            </p>
+                          )}
+
+                          {/* Order Info */}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(150px,1fr))",
+                              gap: "6px",
+                              fontSize: "14px",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            <div>
+                              <strong>Order ID:</strong> #{course.order_id}
+                            </div>
+
+                            <div>
+                              <strong>Price:</strong> ₹{course.price}
+                            </div>
+
+                            <div>
+                              <strong>Quantity:</strong> {course.quantity}
+                            </div>
+
+                            <div>
+                              <strong>Payment:</strong>{" "}
+                              <span
+                                style={{
+                                  color:
+                                    course.payment_status === "paid"
+                                      ? "#16a34a"
+                                      : "#dc2626",
+                                  fontWeight: "600",
+                                }}
+                              >
+                                {course.payment_status}
+                              </span>
+                            </div>
+
+                            {course.product_type && (
+                              <div>
+                                <strong>Type:</strong> {course.product_type}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Buttons */}
+                          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                            {course.video_url && (
+                              <a
+                                href={`{course.video_url}`}
+                                target="_blank"
+                                style={{
+                                  background: "#8b5cf6",
+                                  color: "white",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  textDecoration: "none",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                ▶ Watch Course
+                              </a>
+                            )}
+
+                            {course.pdf_file && (
+                              <a
+                                href={`https://api.miet.life${course.pdf_file}`}
+                                target="_blank"
+                                style={{
+                                  background: "#10b981",
+                                  color: "white",
+                                  padding: "6px 12px",
+                                  borderRadius: "6px",
+                                  textDecoration: "none",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                ⬇ Download Notes
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </>
+          )}
+
+          {/* Consultations Section */}
+          {activeSection === 'consultations' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '32px',
+              marginBottom: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '24px'
+              }}>
+                My Consultations
+              </h2>
+
+              {consultations.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#666'
+                }}>
+                  <FaCalendarAlt style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                  <p style={{ fontSize: '16px', marginBottom: '16px' }}>No consultations scheduled yet</p>
+                  <button
+                    onClick={handleBookConsultation}
+                    style={{
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Book Your First Consultation
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gap: '16px'
+                }}>
+                  {consultations.map((consultation) => (
+                    <div
+                      key={consultation.id}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{
+                            fontSize: '18px',
+                            fontWeight: '600',
+                            color: '#333',
+                            marginBottom: '8px'
+                          }}>
+                            {consultation.title}
+                          </h3>
+                          <p style={{
+                            fontSize: '14px',
+                            color: '#666',
+                            marginBottom: '12px'
+                          }}>
+                            {consultation.description}
+                          </p>
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '16px',
+                            fontSize: '14px',
+                            color: '#666'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FaClock />
+                              {new Date(consultation.start_time).toLocaleString()}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FaUserMd />
+                              {consultation.consultant_name || 'Consultant'}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              ₹{consultation.price}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          alignItems: 'flex-end'
+                        }}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            background: consultation.status === 'scheduled' ? '#e3f2fd' :
+                              consultation.status === 'confirmed' ? '#e8f5e8' : '#ffebee',
+                            color: consultation.status === 'scheduled' ? '#1976d2' :
+                              consultation.status === 'confirmed' ? '#388e3c' : '#d32f2f'
+                          }}>
+                            {consultation.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
+                        marginTop: '16px',
+                        flexWrap: 'wrap'
+                      }}>
+                        {consultation.google_meet_link && (
+                          <a
+                            href={consultation.google_meet_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: '#e3f2fd',
+                              color: '#1976d2',
+                              textDecoration: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#bbdefb';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = '#e3f2fd';
+                            }}
+                          >
+                            <FaVideo style={{ fontSize: '14px' }} />
+                            Join Meeting
+                          </a>
+                        )}
+
+                        {consultation.google_calendar_event_id && (
+                          <a
+                            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(consultation.title)}&dates=${new Date(consultation.start_time).toISOString().replace(/[-:]/g, '').split('.')[0]}Z/${new Date(consultation.end_time).toISOString().replace(/[-:]/g, '').split('.')[0]}Z&details=${encodeURIComponent(consultation.description)}&location=${consultation.google_meet_link || ''}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: '#e8f5e8',
+                              color: '#388e3c',
+                              textDecoration: 'none',
+                              padding: '8px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#c8e6c9';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = '#e8f5e8';
+                            }}
+                          >
+                            <FaCalendarAlt style={{ fontSize: '14px' }} />
+                            Add to Calendar
+                          </a>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            // TODO: Implement edit functionality
+
+                          }}
+                          style={{
+                            background: '#f3e5f5',
+                            color: '#7b1fa2',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = '#e1bee7';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = '#f3e5f5';
+                          }}
+                        >
+                          <FaEdit style={{ fontSize: '14px' }} />
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('Are you sure you want to delete this consultation?')) {
+                              try {
+                                const token = localStorage.getItem('user_jwt');
+                                if (!token) {
+                                  addNotification({
+                                    type: 'error',
+                                    title: 'Error',
+                                    message: 'Authentication token not found'
+                                  });
+                                  return;
+                                }
+
+                                const response = await fetch(`${getApiUrl('api/consultations/by-email')}/${consultation.id}`, {
+                                  method: 'DELETE',
+                                  headers: { 'Authorization': `Bearer ${token}` }
+                                });
+
+                                if (response.ok) {
+                                  addNotification({
+                                    type: 'success',
+                                    title: 'Success',
+                                    message: 'Consultation deleted successfully'
+                                  });
+                                  // Reload consultations
+                                  await loadConsultations(token);
+                                } else {
+                                  const errorData = await response.json();
+                                  addNotification({
+                                    type: 'error',
+                                    title: 'Error',
+                                    message: errorData.message || 'Failed to delete consultation'
+                                  });
+                                }
+                              } catch (error) {
+
+                                addNotification({
+                                  type: 'error',
+                                  title: 'Error',
+                                  message: 'Failed to delete consultation'
+                                });
+                              }
+                            }
+                          }}
+                          style={{
+                            background: '#ffebee',
+                            color: '#d32f2f',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.background = '#ffcdd2';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.background = '#ffebee';
+                          }}
+                        >
+                          <FaTrash style={{ fontSize: '14px' }} />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Webinars Section */}
+          {activeSection === 'webinars' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '32px',
+              marginBottom: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '24px'
+              }}>
+                Upcoming Webinars
+              </h2>
+
+              {upcomingWebinars.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#666'
+                }}>
+                  <FaVideo style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                  <p style={{ fontSize: '16px' }}>No upcoming webinars at the moment</p>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gap: '16px'
+                }}>
+                  {upcomingWebinars.map((webinar) => (
+                    <div
+                      key={webinar.id}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{
+                            fontSize: '18px',
+                            fontWeight: '600',
+                            color: '#333',
+                            marginBottom: '8px'
+                          }}>
+                            {webinar.title}
+                          </h3>
+                          <p style={{
+                            fontSize: '14px',
+                            color: '#666',
+                            marginBottom: '12px'
+                          }}>
+                            {webinar.description}
+                          </p>
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '16px',
+                            fontSize: '14px',
+                            color: '#666'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <FaClock />
+                              {new Date(webinar.start_time).toLocaleString()}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {webinar.is_free ? 'Free' : `₹${webinar.price}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          alignItems: 'flex-end'
+                        }}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            background: '#e8f5e8',
+                            color: '#388e3c'
+                          }}>
+                            {webinar.status}
+                          </span>
+                          {webinar.google_meet_link && (
+                            <a
+                              href={webinar.google_meet_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                color: 'white',
+                                textDecoration: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600'
+                              }}
+                            >
+                              🎥 Join Webinar
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
