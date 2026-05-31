@@ -18,6 +18,17 @@ jobs:
         with:
           node-version: 20
 
+      - name: Debug Secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          echo "Checking if secrets are set:"
+          if [ -z "$SSH_HOST" ]; then echo "SSH_HOST is EMPTY"; else echo "SSH_HOST is set (length: ${#SSH_HOST})"; fi
+          if [ -z "$SSH_USERNAME" ]; then echo "SSH_USERNAME is EMPTY"; else echo "SSH_USERNAME is set (length: ${#SSH_USERNAME})"; fi
+          if [ -z "$SSH_PASSWORD" ]; then echo "SSH_PASSWORD is EMPTY"; else echo "SSH_PASSWORD is set (length: ${#SSH_PASSWORD})"; fi
+
       - name: Install SSH utilities
         run: |
           sudo apt-get update
