@@ -1,6 +1,6 @@
 {
   "TopBar": {
-    "home": "Home 1",
+    "home": "Home",
     "sitemap": "Sitemap",
     "about": "About Us",
     "services": "Services",
@@ -85,7 +85,7 @@
     "copyright": "© {year} MieT (Mind Inclusion Education Technology). All rights reserved.",
     "designedBy": "Designed with ❤️ for inclusive education and mental health support",
     "links": {
-      "home": "Home 1",
+      "home": "Home",
       "about": "About Us",
       "services": "Our Services",
       "consultants": "Find Consultants",

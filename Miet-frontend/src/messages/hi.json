@@ -1,6 +1,6 @@
 {
     "TopBar": {
-        "home": "होम 1",
+        "home": "होम",
         "sitemap": "साइटमैप",
         "about": "हमारे बारे में",
         "services": "सेवाएं",
@@ -85,7 +85,7 @@
         "copyright": "© {year} MieT (Mind Inclusion Education Technology). सर्वाधिकार सुरक्षित।",
         "designedBy": "समावेशी शिक्षा और मानसिक स्वास्थ्य सहायता के लिए ❤️ के साथ डिज़ाइन किया गया",
         "links": {
-            "home": "होम 1",
+            "home": "होम",
             "about": "हमारे बारे में",
             "services": "हमारी सेवाएं",
             "consultants": "सलाहकार खोजें",
