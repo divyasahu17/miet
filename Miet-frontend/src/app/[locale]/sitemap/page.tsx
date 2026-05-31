@@ -9,7 +9,7 @@ export default function SitemapPage() {
       title: "Main Pages",
       icon: <FaHome />,
       links: [
-        { name: "Home", href: "/", description: "Main landing page with featured content" },
+        { name: "Home 1", href: "/", description: "Main landing page with featured content" },
         { name: "About Us", href: "/about", description: "Learn about MIET's mission and values" },
         { name: "Contact Us", href: "/contact", description: "Get in touch with our team" }
       ]
@@ -252,7 +252,7 @@ export default function SitemapPage() {
               justifyContent: 'center'
             }}>
               {[
-                { name: 'Home', href: '/', icon: <FaHome /> },
+                { name: 'Home 1', href: '/', icon: <FaHome /> },
                 { name: 'About', href: '/about', icon: <FaInfoCircle /> },
                 { name: 'Services', href: '/services', icon: <FaCogs /> },
                 { name: 'Consultants', href: '/consultants', icon: <FaUsers /> },
