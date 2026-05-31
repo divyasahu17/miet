@@ -41,7 +41,7 @@ if (SUPABASE_URL && SUPABASE_SERVICE_KEY && SUPABASE_URL !== '' && SUPABASE_SERV
   console.warn('   SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? 'Set' : 'Missing');
 }
 
-console.log('--- REFRESHED SERVER STARTING v4 ---');
+console.log('--- REFRESHED SERVER STARTING v5 ---');
 if (process.env.RAZORPAY_KEY_ID) {
   const kid = process.env.RAZORPAY_KEY_ID;
   const ksec = process.env.RAZORPAY_KEY_SECRET || '';
