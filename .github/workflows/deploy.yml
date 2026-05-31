@@ -1,0 +1,65 @@
+name: Deploy Miet Project
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install SSH utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass rsync
+
+      - name: Deploy Backend files
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" rsync -avz -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='database.sqlite' \
+            --exclude='uploads' \
+            ./backend_export/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/backend/
+
+      - name: Deploy Frontend files
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" rsync -avz -e "ssh -o StrictHostKeyChecking=no -p 22" \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='.next' \
+            --exclude='database.sqlite' \
+            ./Miet-frontend/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/html/miet-frontend/
+
+      - name: Restart Backend & Frontend on Server
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} "
+            echo 'Installing Backend dependencies...' && \
+            cd /var/www/backend && \
+            npm install && \
+            pm2 restart miet-backend && \
+            \
+            echo 'Installing Frontend dependencies...' && \
+            cd /var/www/html/miet-frontend && \
+            npm install && \
+            npm run build && \
+            pm2 restart miet-frontend && \
+            \
+            echo 'Deployment complete!'
+          "
