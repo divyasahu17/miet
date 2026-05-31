@@ -1308,16 +1308,16 @@ async function authenticateToken(req, res, next) {
 
 
 
-     try {
-        const user = jwt.verify(token, JWT_SECRET);
-        console.log("✅ JWT Verified:", user);
-        req.user = user;
-        return next();
-      } catch (err) {
-        console.log("❌ JWT Error:", err.message);
-        // return res.status(403).json({ error: 'Invalid token' });
-      }
-    
+    try {
+      const user = jwt.verify(token, JWT_SECRET);
+      console.log("✅ JWT Verified:", user);
+      req.user = user;
+      return next();
+    } catch (err) {
+      console.log("❌ JWT Error:", err.message);
+      // return res.status(403).json({ error: 'Invalid token' });
+    }
+
 
 
 
@@ -1333,7 +1333,7 @@ async function authenticateToken(req, res, next) {
     //   console.log('Backend JWT verification failed, trying Supabase token');
     // }
 
-      
+
 
     // If backend JWT verification fails, try to decode as Supabase token
     const decoded = decodeJwtPayload(token);
@@ -2104,38 +2104,38 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
       // console.log(consultant);
 
-        try {
+      try {
 
-          // your DB logic
+        // your DB logic
 
-          console.log(consultant);
+        console.log(consultant);
 
-          const token = jwt.sign(
-            {
-              id: consultant.user_id,
-              email,
-              role: 'consultant',
-              consultantId: consultant.id
-            },
-            process.env.JWT_SECRET || 'miet_secret_key_2024',
-            { expiresIn: '7d' }
-          );
+        const token = jwt.sign(
+          {
+            id: consultant.user_id,
+            email,
+            role: 'consultant',
+            consultantId: consultant.id
+          },
+          process.env.JWT_SECRET || 'miet_secret_key_2024',
+          { expiresIn: '7d' }
+        );
 
-          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-          const urlback=(`${frontendUrl}/en/consultants/login?token=${token}&google_auth=true&status=${consultant.approval_status}`);
-          console.log(urlback);
+        const urlback = (`${frontendUrl}/en/consultants/login?token=${token}&google_auth=true&status=${consultant.approval_status}`);
+        console.log(urlback);
 
-          return res.redirect(urlback);
+        return res.redirect(urlback);
 
-        } catch (error) {
+      } catch (error) {
 
-          console.error('Error in Google OAuth callback:', error);
+        console.error('Error in Google OAuth callback:', error);
 
-          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-          return res.redirect(`${frontendUrl}/en/consultants/login?error=oauth_failed`);
-        }
+        return res.redirect(`${frontendUrl}/en/consultants/login?error=oauth_failed`);
+      }
 
 
 
@@ -2674,24 +2674,24 @@ app.get('/api/consultants', authenticateToken, requireRole('superadmin'), async 
 
 
 //authenticateToken, requireRole('superadmin'), 
-  app.post('/api/consultantsUpdate_approval', async (req, res) => {
-    const { id, account_status } = req.body;
+app.post('/api/consultantsUpdate_approval', async (req, res) => {
+  const { id, account_status } = req.body;
 
-    console.log("ID:", id);
-    console.log("STATUS:", account_status);
+  console.log("ID:", id);
+  console.log("STATUS:", account_status);
 
-    try {
-      await db.run(
-        `UPDATE consultants SET approval_status = ? WHERE id = ?`,
-        [account_status, id]
-      );
+  try {
+    await db.run(
+      `UPDATE consultants SET approval_status = ? WHERE id = ?`,
+      [account_status, id]
+    );
 
-      res.json({ message: "Status updated successfully" });
-    } catch (err) {
-      console.error('DB ERROR:', err);
-      res.status(500).json({ error: "Database error" });
-    }
-  });
+    res.json({ message: "Status updated successfully" });
+  } catch (err) {
+    console.error('DB ERROR:', err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
 
 
 // Public: Get all consultants (no auth required)
@@ -2784,62 +2784,62 @@ app.get('/api/consultants/featured', async (req, res) => {
 
 
 
-  app.post(
-    '/api/consultants/update-profile',
-    authenticateToken,
-    upload.fields([
-      { name: 'pan_card', maxCount: 1 },
-      { name: 'gst_certificate', maxCount: 1 },
-      { name: 'degree_certificates', maxCount: 10 }
-    ]),
-    async (req, res) => {
+app.post(
+  '/api/consultants/update-profile',
+  authenticateToken,
+  upload.fields([
+    { name: 'pan_card', maxCount: 1 },
+    { name: 'gst_certificate', maxCount: 1 },
+    { name: 'degree_certificates', maxCount: 10 }
+  ]),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      // 🔹 Step 1: consultant find
+      const consultant = await db.get(
+        'SELECT * FROM consultants WHERE user_id = ?',
+        userId
+      );
+
+      if (!consultant) {
+        return res.status(404).json({ success: false, message: 'Consultant not found' });
+      }
+
+      // 🔹 Step 2: ALL form data
+      const {
+        name,
+        phone,
+        speciality,
+        city,
+        description,
+        pan_number,
+        gst_number,
+        price_per_slot
+      } = req.body;
+
+      // 🔹 Step 3: files
+      const pan_card = req.files?.pan_card?.[0]?.filename || consultant.pan_card;
+      const gst_certificate = req.files?.gst_certificate?.[0]?.filename || consultant.gst_certificate;
+
+      // 🔹 Step 4: degree files merge
+      let degree_files = [];
+
       try {
-        const userId = req.user.id;
+        degree_files = consultant.degree_certificates
+          ? JSON.parse(consultant.degree_certificates)
+          : [];
+      } catch {
+        degree_files = [];
+      }
 
-        // 🔹 Step 1: consultant find
-        const consultant = await db.get(
-          'SELECT * FROM consultants WHERE user_id = ?',
-          userId
-        );
+      if (req.files?.degree_certificates) {
+        const newFiles = req.files.degree_certificates.map(f => f.filename);
+        degree_files = [...degree_files, ...newFiles];
+      }
 
-        if (!consultant) {
-          return res.status(404).json({ success: false, message: 'Consultant not found' });
-        }
-
-        // 🔹 Step 2: ALL form data
-        const {
-          name,
-          phone,
-          speciality,
-          city,
-          description,
-          pan_number,
-          gst_number,
-          price_per_slot
-        } = req.body;
-
-        // 🔹 Step 3: files
-        const pan_card = req.files?.pan_card?.[0]?.filename || consultant.pan_card;
-        const gst_certificate = req.files?.gst_certificate?.[0]?.filename || consultant.gst_certificate;
-
-        // 🔹 Step 4: degree files merge
-        let degree_files = [];
-
-        try {
-          degree_files = consultant.degree_certificates
-            ? JSON.parse(consultant.degree_certificates)
-            : [];
-        } catch {
-          degree_files = [];
-        }
-
-        if (req.files?.degree_certificates) {
-          const newFiles = req.files.degree_certificates.map(f => f.filename);
-          degree_files = [...degree_files, ...newFiles];
-        }
-
-        // 🔹 Step 5: update DB (ALL fields)
-        await db.run(`
+      // 🔹 Step 5: update DB (ALL fields)
+      await db.run(`
           UPDATE consultants SET
             name = ?,
             phone = ?,
@@ -2854,31 +2854,31 @@ app.get('/api/consultants/featured', async (req, res) => {
             degree_certificates = ?
           WHERE user_id = ?
         `,
-          name || consultant.name,
-          phone || consultant.phone,
-          speciality || consultant.speciality,
-          city || consultant.city,
-          description || consultant.description,
-          pan_number || consultant.pan_number,
-          gst_number || consultant.gst_number,
-          price_per_slot || consultant.price_per_slot,
-          pan_card,
-          gst_certificate,
-          JSON.stringify(degree_files),
-          userId
-        );
+        name || consultant.name,
+        phone || consultant.phone,
+        speciality || consultant.speciality,
+        city || consultant.city,
+        description || consultant.description,
+        pan_number || consultant.pan_number,
+        gst_number || consultant.gst_number,
+        price_per_slot || consultant.price_per_slot,
+        pan_card,
+        gst_certificate,
+        JSON.stringify(degree_files),
+        userId
+      );
 
-        res.json({
-          success: true,
-          message: 'Profile updated successfully'
-        });
+      res.json({
+        success: true,
+        message: 'Profile updated successfully'
+      });
 
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server error' });
-      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, message: 'Server error' });
     }
-  );
+  }
+);
 
 
 
@@ -2914,75 +2914,75 @@ app.get('/api/consultants/featured', async (req, res) => {
 
 
 
-  // app.post(
-  //   '/api/consultants/update-profile',
-  //   authenticateToken,
-  //   upload.fields([
-  //     { name: 'pan_card', maxCount: 1 },
-  //     { name: 'gst_certificate', maxCount: 1 },
-  //     { name: 'degree_certificates', maxCount: 10 }
-  //   ]),
-  //   async (req, res) => {
-  //     try {
-  //       const userId = req.user.id;
+// app.post(
+//   '/api/consultants/update-profile',
+//   authenticateToken,
+//   upload.fields([
+//     { name: 'pan_card', maxCount: 1 },
+//     { name: 'gst_certificate', maxCount: 1 },
+//     { name: 'degree_certificates', maxCount: 10 }
+//   ]),
+//   async (req, res) => {
+//     try {
+//       const userId = req.user.id;
 
-  //       // 🔹 Step 1: consultant find karo
-  //       const consultant = await db.get(
-  //         'SELECT * FROM consultants WHERE user_id = ?',
-  //         userId
-  //       );
+//       // 🔹 Step 1: consultant find karo
+//       const consultant = await db.get(
+//         'SELECT * FROM consultants WHERE user_id = ?',
+//         userId
+//       );
 
-  //       if (!consultant) {
-  //         return res.status(404).json({ success: false, message: 'Consultant not found' });
-  //       }
+//       if (!consultant) {
+//         return res.status(404).json({ success: false, message: 'Consultant not found' });
+//       }
 
-  //       // 🔹 Step 2: form data
-  //       const { pan_number, gst_number, price_per_slot } = req.body;
+//       // 🔹 Step 2: form data
+//       const { pan_number, gst_number, price_per_slot } = req.body;
 
-  //       // 🔹 Step 3: files
-  //       const pan_card = req.files?.pan_card?.[0]?.filename || consultant.pan_card;
-  //       const gst_certificate = req.files?.gst_certificate?.[0]?.filename || consultant.gst_certificate;
+//       // 🔹 Step 3: files
+//       const pan_card = req.files?.pan_card?.[0]?.filename || consultant.pan_card;
+//       const gst_certificate = req.files?.gst_certificate?.[0]?.filename || consultant.gst_certificate;
 
-  //       let degree_files = consultant.degree_certificates
-  //         ? JSON.parse(consultant.degree_certificates)
-  //         : [];
+//       let degree_files = consultant.degree_certificates
+//         ? JSON.parse(consultant.degree_certificates)
+//         : [];
 
-  //       if (req.files?.degree_certificates) {
-  //         const newFiles = req.files.degree_certificates.map(f => f.filename);
-  //         degree_files = [...degree_files, ...newFiles];
-  //       }
+//       if (req.files?.degree_certificates) {
+//         const newFiles = req.files.degree_certificates.map(f => f.filename);
+//         degree_files = [...degree_files, ...newFiles];
+//       }
 
-  //       // 🔹 Step 4: update DB
-  //       await db.run(`
-  //         UPDATE consultants SET
-  //           pan_number = ?,
-  //           gst_number = ?,
-  //           price_per_slot = ?,
-  //           pan_card = ?,
-  //           gst_certificate = ?,
-  //           degree_certificates = ?
-  //         WHERE user_id = ?
-  //       `,
-  //         pan_number,
-  //         gst_number,
-  //         price_per_slot,
-  //         pan_card,
-  //         gst_certificate,
-  //         JSON.stringify(degree_files),
-  //         userId
-  //       );
+//       // 🔹 Step 4: update DB
+//       await db.run(`
+//         UPDATE consultants SET
+//           pan_number = ?,
+//           gst_number = ?,
+//           price_per_slot = ?,
+//           pan_card = ?,
+//           gst_certificate = ?,
+//           degree_certificates = ?
+//         WHERE user_id = ?
+//       `,
+//         pan_number,
+//         gst_number,
+//         price_per_slot,
+//         pan_card,
+//         gst_certificate,
+//         JSON.stringify(degree_files),
+//         userId
+//       );
 
-  //       res.json({
-  //         success: true,
-  //         message: 'Profile updated successfully'
-  //       });
+//       res.json({
+//         success: true,
+//         message: 'Profile updated successfully'
+//       });
 
-  //     } catch (error) {
-  //       console.error(error);
-  //       res.status(500).json({ success: false, message: 'Server error' });
-  //     }
-  //   }
-  // );
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ success: false, message: 'Server error' });
+//     }
+//   }
+// );
 
 
 
@@ -3058,7 +3058,7 @@ app.get('/api/consultants/webinars', authenticateToken, async (req, res) => {
       ORDER BY w.start_time DESC
     `, [consultant.email]);
 
-    res.json({ 
+    res.json({
       webinars: webinars.map(web => ({
         ...web,
         registration_fields_json: JSON.parse(web.registration_fields_json || '[]'),
@@ -3278,11 +3278,11 @@ app.get('/api/consultants/auth/google', (req, res) => {
       hd: undefined,
       state: 'consultant_auth'
     });
-    console.log(authUrl); 
+    console.log(authUrl);
     res.redirect(authUrl);
-    
-  
-    
+
+
+
   } catch (error) {
     console.error('Error generating consultant Google OAuth URL:', error);
     res.status(500).json({ error: 'Failed to initiate Google login' });
@@ -3335,7 +3335,7 @@ app.get('/api/consultants/auth/google/callback', async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://76.13.243.172:3001';
 
     res.redirect(`${frontendUrl}/consultants/login?error=oauth_failed`);
-    
+
 
   }
 });
@@ -3701,26 +3701,26 @@ app.get('/api/services/:id', authenticateToken, requireRole('superadmin'), async
 app.post('/api/services', authenticateToken, requireRole('superadmin'), async (req, res) => {
 
   // const { name, description, delivery_mode, service_type, appointment_type, event_type, test_type,   revenue_type = 'paid', price, renewal_date, center, test_redirect_url, consultant_ids = [], category_ids = [], subcategory_ids = [], suggestions = [], subscription_start, subscription_end, discount, monthly_price, yearly_price, center_address, center_lat, center_lng, event_start, event_end, event_image, event_meet_link } = req.body;
-  
-  const { 
-    name, description, delivery_mode, service_type, appointment_type, 
-    event_type, test_type, revenue_type, price, renewal_date, 
-    center, test_redirect_url, consultant_ids = [], category_ids = [], 
-    subcategory_ids = [], suggestions = [], subscription_start, 
-    subscription_end, discount, monthly_price, yearly_price, 
-    center_address, center_lat, center_lng, event_start, 
-    event_end, event_image, event_meet_link 
+
+  const {
+    name, description, delivery_mode, service_type, appointment_type,
+    event_type, test_type, revenue_type, price, renewal_date,
+    center, test_redirect_url, consultant_ids = [], category_ids = [],
+    subcategory_ids = [], suggestions = [], subscription_start,
+    subscription_end, discount, monthly_price, yearly_price,
+    center_address, center_lat, center_lng, event_start,
+    event_end, event_image, event_meet_link
   } = req.body;
 
   const finalRevenueType =
-  revenue_type === 'promotional' ? 'promotional' : 'paid';
+    revenue_type === 'promotional' ? 'promotional' : 'paid';
 
-  if (!name || !delivery_mode || !service_type ) return res.status(400).json({ error: 'Missing required fields' });
+  if (!name || !delivery_mode || !service_type) return res.status(400).json({ error: 'Missing required fields' });
   // For appointment, must have at least one consultant
   if (service_type === 'appointment' && (!Array.isArray(consultant_ids) || consultant_ids.length === 0)) {
     return res.status(400).json({ error: 'Appointment service must have at least one consultant' });
   }
-  
+
   // Insert service
   const result = await db.run(
     `INSERT INTO services (name, description, delivery_mode, service_type, appointment_type, event_type, test_type, revenue_type, price, renewal_date, center, test_redirect_url, subscription_start, subscription_end, discount, monthly_price, yearly_price, center_address, center_lat, center_lng, event_start, event_end, event_image, event_meet_link, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
@@ -6578,7 +6578,7 @@ app.get('/api/consultants/:id/availability', async (req, res) => {
 });
 
 // --- Start server --- process.env.PORT ||
-const PORT =  4000;
+const PORT = 4000;
 
 // Handle uncaught promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -8908,7 +8908,7 @@ const CMS_DEFAULT_SECTIONS = {
 // Current site content from frontend messages (en) - used to preload CMS
 const CMS_DEFAULT_CONTENT_RAW = {
   TopBar: { home: 'Home', sitemap: 'Sitemap', about: 'About Us', services: 'Services', consultants: 'Consultants', marketplace: 'Marketplace', courses: 'Courses', contact: 'Contact Us', searchPlaceholder: 'Search consultants...', searchHeading: 'Search Consultants', accessibility: 'Accessibility', highContrast: 'High Contrast', cart: 'Cart' },
-  WelcomeBoard: { title: 'Comprehensive Support for Special Education and Mental Health Challenges', subtitle: 'We provide best specialized education services for children with unique needs & services to address Mental Health Challenges.', welcome: 'Welcome to <b>MieT</b>!', description: 'Book sessions, get support, and thrive with MieT. Your trusted platform for connecting with Special Education and Mental Health Professionals, and accessing inclusive resources.', learnMore: 'Learn More' },
+  WelcomeBoard: { title: 'Comprehensive Support11 for Special Education and Mental Health Challenges', subtitle: 'We provide best specialized education services for children with unique needs & services to address Mental Health Challenges.', welcome: 'Welcome to <b>MieT</b>!', description: 'Book sessions, get support, and thrive with MieT. Your trusted platform for connecting with Special Education and Mental Health Professionals, and accessing inclusive resources.', learnMore: 'Learn More' },
   SearchPanel: { title: 'Find Your Perfect Consultant', subtitle: 'Discover specialized professionals for Special Education, Mental Health, and Counselling services', placeholder: 'Search Special Education and Mental Health Professionals, Services, Schools, etc.', nearby: 'Nearby', error: 'Error Loading Data', modes_All: 'All', modes_Online: 'Online', modes_Offline: 'Offline' },
   FeaturedSection: { title: 'Featured Consultants & About MIET', subtitle: 'Discover our exceptional professionals and learn about our mission', loading: 'Loading featured consultants...', error: 'Could not load featured consultants.', noConsultants: 'No featured consultants available at the moment.', sectionTitle: 'Featured Consultants', bookAppointment: 'Book Appointment', aboutTitle: 'About MIET', aboutSubtitle: 'MieT (मीत)', aboutDescription: 'A tech-enabled platform based in Gurgaon, empowering individuals with diverse abilities through personalized Special Education, Mental Health Services, and Counselling.', missionTitle: 'Our Mission', missionDescription: 'To unlock potential, nurture growth, and build an inclusive community for all individuals, regardless of their abilities or challenges.', learnMore: 'Learn More', contactUs: 'Contact Us', tags_specialEducation: 'Special Education', tags_mentalHealth: 'Mental Health', tags_counselling: 'Counselling' },
   MarketplaceSection: { loading: 'Loading marketplace...', title: 'Marketplace: Courses, Books, Apps, Gadgets', subtitle: 'Discover amazing resources and tools for your journey', buyNow: 'Buy Now', previous: 'Previous', next: 'Next', noProductsTitle: 'No products found', noProductsDescription: 'No {category} products available yet. Check back soon!' },
@@ -8964,7 +8964,7 @@ app.post('/api/cms/seed', async (req, res) => {
     console.error('Error seeding CMS:', error);
     res.status(500).json({ error: 'Failed to preload CMS content' });
   }
-    
+
 });
 
 // GET /api/cms - Get all CMS content (optionally filtered by page)
@@ -9603,7 +9603,7 @@ app.post('/api/create-order', async (req, res) => {
 
 
 app.get('/api/ordersAdmin', async (req, res) => {
-   console.log("Admin ORDER API HIT");
+  console.log("Admin ORDER API HIT");
   try {
 
     const orders = await db.all(`
@@ -9638,7 +9638,7 @@ app.get('/api/ordersAdmin', async (req, res) => {
     console.log("ORDERS:", orders);
 
     res.json({
-      success:true,
+      success: true,
       orders
     });
 
@@ -9647,8 +9647,8 @@ app.get('/api/ordersAdmin', async (req, res) => {
     console.log("ORDER ERROR:", error);
 
     res.status(500).json({
-      success:false,
-      message:"Error fetching orders"
+      success: false,
+      message: "Error fetching orders"
     });
 
   }
@@ -10409,8 +10409,8 @@ app.post('/api/webinars/:id/send-joining-link', async (req, res) => {
     `, [req.params.id]);
 
     for (let u of users) {
-      const link = (webinar.platform_type === 'google_meet') 
-        ? webinar.google_meet_link 
+      const link = (webinar.platform_type === 'google_meet')
+        ? webinar.google_meet_link
         : webinar.manual_link;
 
       let emailBody = webinar.joining_email_template || `<p>Join: ${link}</p>`;
@@ -10441,8 +10441,8 @@ app.post('/api/webinars/:id/send-reminder', async (req, res) => {
   `, [req.params.id]);
 
   for (let u of users) {
-    const link = (webinar.platform_type === 'google_meet') 
-      ? webinar.google_meet_link 
+    const link = (webinar.platform_type === 'google_meet')
+      ? webinar.google_meet_link
       : webinar.manual_link;
 
     let emailBody = webinar.reminder_email_template || `<p>Reminder: The webinar starts soon! Join here: ${link}</p>`;
