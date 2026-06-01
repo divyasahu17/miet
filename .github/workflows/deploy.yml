@@ -34,6 +34,18 @@ jobs:
             --exclude='uploads' \
             ./backend_export/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/backend/
 
+      - name: Download .env from Server for Frontend Build
+        env:
+          SSH_PASS: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no -P 22 ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/html/miet-frontend/.env ./Miet-frontend/.env || echo "No .env found on server"
+
+      - name: Install Frontend dependencies & Build Locally
+        run: |
+          cd Miet-frontend
+          npm install
+          npm run build
+
       - name: Deploy Frontend files
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
@@ -41,7 +53,6 @@ jobs:
           sshpass -p "$SSH_PASS" rsync -avz -e "ssh -o StrictHostKeyChecking=no -p 22" \
             --exclude='node_modules' \
             --exclude='.env' \
-            --exclude='.next' \
             --exclude='database.sqlite' \
             ./Miet-frontend/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/html/miet-frontend/
 
@@ -57,8 +68,7 @@ jobs:
             \
             echo 'Installing Frontend dependencies...' && \
             cd /var/www/html/miet-frontend && \
-            npm install && \
-            npm run build && \
+            npm install --production && \
             pm2 restart miet-frontend && \
             \
             echo 'Deployment complete!'
