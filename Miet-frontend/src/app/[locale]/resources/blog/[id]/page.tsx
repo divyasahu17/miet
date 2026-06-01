@@ -328,14 +328,14 @@ export default function BlogDetailPage({ params }: { params: any }) {
             )}
 
             {/* Content */}
-            <div style={{
-              fontSize: '1.1rem',
-              color: '#4b5563',
-              lineHeight: '1.8',
-              whiteSpace: 'pre-line'
-            }}>
-              {blog.description}
-            </div>
+            <div 
+              style={{
+                fontSize: '1.1rem',
+                color: '#4b5563',
+                lineHeight: '1.8'
+              }}
+              dangerouslySetInnerHTML={{ __html: blog.description }}
+            />
           </div>
         </div>
       </main>

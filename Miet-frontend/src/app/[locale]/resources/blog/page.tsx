@@ -68,10 +68,12 @@ export default function BlogListingPage() {
   };
 
   const truncateDescription = (description: string, maxLength: number = 150) => {
-    if (description.length <= maxLength) {
-      return description;
+    // Strip HTML tags using regex
+    const cleanText = description ? description.replace(/<[^>]*>/g, '') : '';
+    if (cleanText.length <= maxLength) {
+      return cleanText;
     }
-    return description.substring(0, maxLength).trim() + '...';
+    return cleanText.substring(0, maxLength).trim() + '...';
   };
 
   // Transform blogs for display
