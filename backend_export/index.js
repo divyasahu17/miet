@@ -7197,21 +7197,58 @@ async function ensureBlogsTable() {
 // Ensure gallery_images table exists
 async function ensureGalleryTable() {
   try {
+    // First, ensure the table exists (new setup)
     await db.exec(`
       CREATE TABLE IF NOT EXISTS gallery_images (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
         description TEXT,
-        image_path TEXT NOT NULL,
+        image_path TEXT,
+        video_path TEXT,
         display_order INTEGER DEFAULT 0,
         status TEXT CHECK(status IN ('active', 'inactive')) NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('Gallery images table ensured successfully.');
+
+    // Check if video_path exists in case of existing table
+    const columns = await db.all("PRAGMA table_info(gallery_images)");
+    const columnNames = columns.map(c => c.name);
+
+    if (!columnNames.includes('video_path')) {
+      console.log('Migrating gallery_images to add video_path...');
+      // Recreate table to drop NOT NULL constraint on image_path and add video_path
+      await db.exec(`
+        CREATE TABLE gallery_images_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT,
+          description TEXT,
+          image_path TEXT,
+          video_path TEXT,
+          display_order INTEGER DEFAULT 0,
+          status TEXT CHECK(status IN ('active', 'inactive')) NOT NULL DEFAULT 'active',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Copy existing records
+      await db.exec(`
+        INSERT INTO gallery_images_new (id, title, description, image_path, display_order, status, created_at, updated_at)
+        SELECT id, title, description, image_path, display_order, status, created_at, updated_at
+        FROM gallery_images;
+      `);
+
+      // Drop old and rename new
+      await db.exec("DROP TABLE gallery_images;");
+      await db.exec("ALTER TABLE gallery_images_new RENAME TO gallery_images;");
+      console.log('Successfully migrated gallery_images table to support video_path and nullable image_path!');
+    } else {
+      console.log('Gallery images table ensured successfully.');
+    }
   } catch (error) {
-    console.error('Error creating gallery_images table:', error);
+    console.error('Error creating/migrating gallery_images table:', error);
     throw error;
   }
 }
@@ -8819,45 +8856,52 @@ const galleryUpload = multer({
 });
 
 // POST /api/gallery - Upload multiple gallery images
-app.post('/api/gallery', galleryUpload.array('images', 20), async (req, res) => {
+app.post('/api/gallery', galleryUpload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'Authentication required' });
     try { jwt.verify(token, JWT_SECRET); } catch (e) { return res.status(401).json({ error: 'Invalid token' }); }
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'No images uploaded' });
-    }
-
     const { title, description, status } = req.body;
     const validStatus = status === 'active' || status === 'inactive' ? status : 'active';
-    const results = [];
+
+    const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+    const videoFile = req.files && req.files['video'] ? req.files['video'][0] : null;
+
+    if (!imageFile && !videoFile) {
+      return res.status(400).json({ error: 'Please upload either an image, a video, or both.' });
+    }
+
+    const imagePath = imageFile ? `/uploads/gallery/${imageFile.filename}` : null;
+    const videoPath = videoFile ? `/uploads/gallery/${videoFile.filename}` : null;
 
     // Get the current max display_order
     const maxOrder = await db.get('SELECT MAX(display_order) as max_order FROM gallery_images');
-    let currentOrder = (maxOrder?.max_order || 0);
+    const nextOrder = (maxOrder?.max_order || 0) + 1;
 
-    for (const file of req.files) {
-      currentOrder++;
-      const imagePath = `/uploads/gallery/${file.filename}`;
-      const result = await db.run(
-        `INSERT INTO gallery_images (title, description, image_path, display_order, status) VALUES (?, ?, ?, ?, ?)`,
-        [title || '', description || '', imagePath, currentOrder, validStatus]
-      );
-      results.push({
+    const result = await db.run(
+      `INSERT INTO gallery_images (title, description, image_path, video_path, display_order, status) VALUES (?, ?, ?, ?, ?, ?)`,
+      [title || '', description || '', imagePath, videoPath, nextOrder, validStatus]
+    );
+
+    res.status(201).json({
+      success: true,
+      image: {
         id: result.lastID,
         title: title || '',
         description: description || '',
         image_path: imagePath,
-        display_order: currentOrder,
+        video_path: videoPath,
+        display_order: nextOrder,
         status: validStatus
-      });
-    }
-
-    res.status(201).json({ success: true, images: results });
+      }
+    });
   } catch (error) {
-    console.error('Error uploading gallery images:', error);
-    res.status(500).json({ error: 'Failed to upload gallery images' });
+    console.error('Error uploading gallery item:', error);
+    res.status(500).json({ error: 'Failed to upload gallery item' });
   }
 });
 
@@ -8896,7 +8940,10 @@ app.get('/api/gallery/:id', async (req, res) => {
 });
 
 // PUT /api/gallery/:id - Update gallery image details
-app.put('/api/gallery/:id', galleryUpload.single('image'), async (req, res) => {
+app.put('/api/gallery/:id', galleryUpload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'Authentication required' });
@@ -8904,24 +8951,51 @@ app.put('/api/gallery/:id', galleryUpload.single('image'), async (req, res) => {
 
     const { id } = req.params;
     const existing = await db.get('SELECT * FROM gallery_images WHERE id = ?', [id]);
-    if (!existing) return res.status(404).json({ error: 'Gallery image not found' });
+    if (!existing) return res.status(404).json({ error: 'Gallery item not found' });
 
-    const { title, description, status, display_order } = req.body;
+    const { title, description, status, display_order, remove_image, remove_video } = req.body;
+    
     let imagePath = existing.image_path;
+    let videoPath = existing.video_path;
 
-    if (req.file) {
-      // Delete old file
-      const oldPath = path.join(process.cwd(), existing.image_path);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      imagePath = `/uploads/gallery/${req.file.filename}`;
+    const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+    const videoFile = req.files && req.files['video'] ? req.files['video'][0] : null;
+
+    if (imageFile) {
+      if (existing.image_path) {
+        const oldPath = path.join(process.cwd(), existing.image_path);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      imagePath = `/uploads/gallery/${imageFile.filename}`;
+    } else if (remove_image === 'true' || remove_image === true) {
+      if (existing.image_path) {
+        const oldPath = path.join(process.cwd(), existing.image_path);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      imagePath = null;
+    }
+
+    if (videoFile) {
+      if (existing.video_path) {
+        const oldPath = path.join(process.cwd(), existing.video_path);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      videoPath = `/uploads/gallery/${videoFile.filename}`;
+    } else if (remove_video === 'true' || remove_video === true) {
+      if (existing.video_path) {
+        const oldPath = path.join(process.cwd(), existing.video_path);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      videoPath = null;
     }
 
     await db.run(
-      `UPDATE gallery_images SET title = ?, description = ?, image_path = ?, display_order = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE gallery_images SET title = ?, description = ?, image_path = ?, video_path = ?, display_order = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [
         title !== undefined ? title : existing.title,
         description !== undefined ? description : existing.description,
         imagePath,
+        videoPath,
         display_order !== undefined ? parseInt(display_order) : existing.display_order,
         status || existing.status,
         id
@@ -8931,8 +9005,8 @@ app.put('/api/gallery/:id', galleryUpload.single('image'), async (req, res) => {
     const updated = await db.get('SELECT * FROM gallery_images WHERE id = ?', [id]);
     res.json({ success: true, image: updated });
   } catch (error) {
-    console.error('Error updating gallery image:', error);
-    res.status(500).json({ error: 'Failed to update gallery image' });
+    console.error('Error updating gallery item:', error);
+    res.status(500).json({ error: 'Failed to update gallery item' });
   }
 });
 
@@ -8947,9 +9021,15 @@ app.delete('/api/gallery/:id', async (req, res) => {
     const existing = await db.get('SELECT * FROM gallery_images WHERE id = ?', [id]);
     if (!existing) return res.status(404).json({ error: 'Gallery image not found' });
 
-    // Delete the file from disk
-    const filePath = path.join(process.cwd(), existing.image_path);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Delete the files from disk
+    if (existing.image_path) {
+      const imgPath = path.join(process.cwd(), existing.image_path);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
+    if (existing.video_path) {
+      const vidPath = path.join(process.cwd(), existing.video_path);
+      if (fs.existsSync(vidPath)) fs.unlinkSync(vidPath);
+    }
 
     await db.run('DELETE FROM gallery_images WHERE id = ?', [id]);
     res.json({ success: true, message: 'Gallery image deleted successfully' });

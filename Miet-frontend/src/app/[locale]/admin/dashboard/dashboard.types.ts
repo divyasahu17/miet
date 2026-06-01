@@ -200,9 +200,12 @@ export interface GalleryImage {
   title: string;
   description: string;
   image_path: string;
+  video_path?: string;
   display_order: number;
   status: 'active' | 'inactive';
   created_at?: string;
+  remove_image?: boolean;
+  remove_video?: boolean;
 }
 
 export interface CmsItem {

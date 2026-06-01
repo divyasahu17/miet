@@ -25,7 +25,24 @@ export default function GalleryTab(props: any) {
     galleryDescription,
     galleryFiles = [],
     galleryPreview = [],
-    loading
+    loading,
+
+    galleryImageFile,
+    setGalleryImageFile,
+    galleryVideoFile,
+    setGalleryVideoFile,
+    galleryImagePreview,
+    setGalleryImagePreview,
+    galleryVideoPreview,
+    setGalleryVideoPreview,
+    galleryEditImageFile,
+    setGalleryEditImageFile,
+    galleryEditVideoFile,
+    setGalleryEditVideoFile,
+    galleryEditImagePreview,
+    setGalleryEditImagePreview,
+    galleryEditVideoPreview,
+    setGalleryEditVideoPreview,
   } = props;
 
   const getGalleryImageUrl = (img: any) => {
@@ -92,13 +109,22 @@ export default function GalleryTab(props: any) {
                     border: '1px solid rgba(102, 126, 234, 0.1)',
                     transition: 'all 0.3s ease'
                   }}>
-                    <div style={{ position: 'relative', height: '180px', overflow: 'hidden' }}>
-                      <img
-                        src={getGalleryImageUrl(img)}
-                        alt={img.title || 'Gallery image'}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
-                      />
+                    <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#000' }}>
+                      {img.video_path ? (
+                        <video
+                          src={getImageUrl(img.video_path)}
+                          controls
+                          playsInline
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <img
+                          src={getGalleryImageUrl(img)}
+                          alt={img.title || 'Gallery item'}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
+                        />
+                      )}
                       <div style={{
                         position: 'absolute', top: 8, right: 8,
                         background: img.status === 'active' ? '#10b981' : '#ef4444',
@@ -130,10 +156,62 @@ export default function GalleryTab(props: any) {
                             placeholder="Display Order"
                             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
                           />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                            <label style={{ fontSize: '11px', fontWeight: 600, color: '#4b5563' }}>Update Image (optional)</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e: any) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setGalleryEditImageFile(file);
+                                  setGalleryEditImagePreview(URL.createObjectURL(file));
+                                }
+                              }}
+                              style={{ fontSize: '11px' }}
+                            />
+                            {img.image_path && (
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: '#ef4444', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(galleryEditForm.remove_image)}
+                                  onChange={(e) => setGalleryEditForm((f: any) => ({ ...f, remove_image: e.target.checked }))}
+                                />
+                                Delete current image
+                              </label>
+                            )}
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                            <label style={{ fontSize: '11px', fontWeight: 600, color: '#4b5563' }}>Update Video (optional)</label>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(e: any) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setGalleryEditVideoFile(file);
+                                  setGalleryEditVideoPreview(URL.createObjectURL(file));
+                                }
+                              }}
+                              style={{ fontSize: '11px' }}
+                            />
+                            {img.video_path && (
+                              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: '#ef4444', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(galleryEditForm.remove_video)}
+                                  onChange={(e) => setGalleryEditForm((f: any) => ({ ...f, remove_video: e.target.checked }))}
+                                />
+                                Delete current video
+                              </label>
+                            )}
+                          </div>
+
                           <select
                             value={galleryEditForm.status || 'active'}
                             onChange={(e: any) => setGalleryEditForm((f: any) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
-                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', marginTop: 4 }}
                           >
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
@@ -237,14 +315,14 @@ export default function GalleryTab(props: any) {
                       fontWeight: 700, marginBottom: 24, fontSize: '24px',
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
-                    }}>Upload Gallery Images</h2>
+                    }}>Upload Gallery Item</h2>
                     <form onSubmit={handleGalleryUpload} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                       <div>
                         <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Title (optional)</label>
                         <input
                           value={galleryTitle}
                           onChange={e => setGalleryTitle(e.target.value)}
-                          placeholder="Image title"
+                          placeholder="Gallery item title"
                           style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px' }}
                         />
                       </div>
@@ -253,47 +331,67 @@ export default function GalleryTab(props: any) {
                         <textarea
                           value={galleryDescription}
                           onChange={e => setGalleryDescription(e.target.value)}
-                          placeholder="Image description"
+                          placeholder="Gallery item description"
                           rows={3}
                           style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px', resize: 'vertical' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Select Images *</label>
+                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Select Image (optional)</label>
                         <input
                           type="file"
                           accept="image/*"
-                          multiple
                           onChange={(e: any) => {
-                            const files = Array.from(e.target.files || []);
-                            setGalleryFiles(files);
-                            const previews = files.map((f: any) => URL.createObjectURL(f));
-                            setGalleryPreview(previews);
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setGalleryImageFile(file);
+                              setGalleryImagePreview(URL.createObjectURL(file));
+                            }
                           }}
                           style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px' }}
                         />
-                        {galleryPreview.length > 0 && (
-                          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                            {galleryPreview.map((p: string, i: number) => (
-                              <img key={i} src={p} alt={`Preview ${i + 1}`}
-                                style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '2px solid rgba(102, 126, 234, 0.2)' }}
-                              />
-                            ))}
+                        {galleryImagePreview && (
+                          <div style={{ marginTop: 12 }}>
+                            <img src={galleryImagePreview} alt="Image Preview"
+                              style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 10, border: '2px solid rgba(102, 126, 234, 0.2)' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Select Video (optional)</label>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e: any) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setGalleryVideoFile(file);
+                              setGalleryVideoPreview(URL.createObjectURL(file));
+                            }
+                          }}
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px' }}
+                        />
+                        {galleryVideoPreview && (
+                          <div style={{ marginTop: 12 }}>
+                            <video src={galleryVideoPreview} controls
+                              style={{ width: 150, height: 100, objectFit: 'cover', borderRadius: 10, border: '2px solid rgba(102, 126, 234, 0.2)' }}
+                            />
                           </div>
                         )}
                       </div>
                       <button
                         type="submit"
-                        disabled={loading || galleryFiles.length === 0}
+                        disabled={loading || (!galleryImageFile && !galleryVideoFile)}
                         style={{
                           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           color: '#fff', border: 'none', borderRadius: '12px',
                           padding: '14px 28px', fontWeight: 700, fontSize: '16px',
-                          cursor: loading ? 'not-allowed' : 'pointer',
+                          cursor: (loading || (!galleryImageFile && !galleryVideoFile)) ? 'not-allowed' : 'pointer',
                           boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
                         }}
                       >
-                        {loading ? 'Uploading...' : `Upload ${galleryFiles.length} Image${galleryFiles.length !== 1 ? 's' : ''}`}
+                        {loading ? 'Uploading...' : 'Save Gallery Item'}
                       </button>
                     </form>
                   </div>

@@ -376,9 +376,12 @@ export default function AdminDashboard() {
     title: string;
     description: string;
     image_path: string;
+    video_path?: string;
     display_order: number;
     status: 'active' | 'inactive';
     created_at?: string;
+    remove_image?: boolean;
+    remove_video?: boolean;
   }
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
@@ -388,6 +391,15 @@ export default function AdminDashboard() {
   const [galleryEditForm, setGalleryEditForm] = useState<Partial<GalleryImage>>({});
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryPreview, setGalleryPreview] = useState<string[]>([]);
+  
+  const [galleryImageFile, setGalleryImageFile] = useState<File | null>(null);
+  const [galleryVideoFile, setGalleryVideoFile] = useState<File | null>(null);
+  const [galleryImagePreview, setGalleryImagePreview] = useState<string>('');
+  const [galleryVideoPreview, setGalleryVideoPreview] = useState<string>('');
+  const [galleryEditImageFile, setGalleryEditImageFile] = useState<File | null>(null);
+  const [galleryEditVideoFile, setGalleryEditVideoFile] = useState<File | null>(null);
+  const [galleryEditImagePreview, setGalleryEditImagePreview] = useState<string>('');
+  const [galleryEditVideoPreview, setGalleryEditVideoPreview] = useState<string>('');
 
   // CMS state
   interface CmsItem {
@@ -1816,7 +1828,10 @@ useEffect(() => {
 
   async function handleGalleryUpload(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    if (galleryFiles.length === 0) { alert('Please select at least one image'); return; }
+    if (!galleryImageFile && !galleryVideoFile) {
+      alert('Please select either an image or a video file');
+      return;
+    }
     const token = localStorage.getItem("admin_jwt");
     if (!token) {
       alert('Please log in to the admin panel first.');
@@ -1825,7 +1840,8 @@ useEffect(() => {
     try {
       setLoading(true);
       const formData = new FormData();
-      galleryFiles.forEach(file => formData.append('images', file));
+      if (galleryImageFile) formData.append('image', galleryImageFile);
+      if (galleryVideoFile) formData.append('video', galleryVideoFile);
       formData.append('title', galleryTitle);
       formData.append('description', galleryDescription);
       formData.append('status', 'active');
@@ -1837,20 +1853,22 @@ useEffect(() => {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setGalleryFiles([]);
+        setGalleryImageFile(null);
+        setGalleryVideoFile(null);
+        setGalleryImagePreview('');
+        setGalleryVideoPreview('');
         setGalleryTitle('');
         setGalleryDescription('');
-        setGalleryPreview([]);
         setShowGalleryModal(false);
         fetchGallery();
-        addNotification({ type: 'success', title: 'Success', message: 'Images uploaded successfully!' });
+        addNotification({ type: 'success', title: 'Success', message: 'Gallery item uploaded successfully!' });
       } else {
         const msg = data.error || data.message || `Upload failed (${res.status})`;
         addNotification({ type: 'error', title: 'Upload failed', message: msg });
         alert(msg);
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Error uploading images';
+      const msg = error instanceof Error ? error.message : 'Error uploading gallery item';
       addNotification({ type: 'error', title: 'Upload error', message: msg });
       alert(msg);
     } finally {
@@ -1868,6 +1886,11 @@ useEffect(() => {
       if (galleryEditForm.status) formData.append('status', galleryEditForm.status);
       if (galleryEditForm.display_order !== undefined) formData.append('display_order', String(galleryEditForm.display_order));
 
+      if (galleryEditImageFile) formData.append('image', galleryEditImageFile);
+      if (galleryEditVideoFile) formData.append('video', galleryEditVideoFile);
+      if (galleryEditForm.remove_image) formData.append('remove_image', 'true');
+      if (galleryEditForm.remove_video) formData.append('remove_video', 'true');
+
       const res = await fetch(getApiUrl(`api/gallery/${id}`), {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
@@ -1876,13 +1899,17 @@ useEffect(() => {
       if (res.ok) {
         setGalleryEditId(null);
         setGalleryEditForm({});
+        setGalleryEditImageFile(null);
+        setGalleryEditVideoFile(null);
+        setGalleryEditImagePreview('');
+        setGalleryEditVideoPreview('');
         fetchGallery();
-        addNotification({ type: 'success', title: 'Success', message: 'Gallery image updated!' });
+        addNotification({ type: 'success', title: 'Success', message: 'Gallery item updated!' });
       } else {
-        alert('Failed to update gallery image');
+        alert('Failed to update gallery item');
       }
     } catch (error) {
-      alert('Error updating gallery image');
+      alert('Error updating gallery item');
     } finally {
       setLoading(false);
     }
@@ -2278,6 +2305,22 @@ useEffect(() => {
   galleryImages,
   galleryPreview,
   galleryTitle,
+  galleryImageFile,
+  setGalleryImageFile,
+  galleryVideoFile,
+  setGalleryVideoFile,
+  galleryImagePreview,
+  setGalleryImagePreview,
+  galleryVideoPreview,
+  setGalleryVideoPreview,
+  galleryEditImageFile,
+  setGalleryEditImageFile,
+  galleryEditVideoFile,
+  setGalleryEditVideoFile,
+  galleryEditImagePreview,
+  setGalleryEditImagePreview,
+  galleryEditVideoPreview,
+  setGalleryEditVideoPreview,
   generateMeetLink,
   getApiUrl,
   getAvailableDates,
@@ -2601,6 +2644,22 @@ useEffect(() => {
   galleryImages,
   galleryPreview,
   galleryTitle,
+  galleryImageFile,
+  setGalleryImageFile,
+  galleryVideoFile,
+  setGalleryVideoFile,
+  galleryImagePreview,
+  setGalleryImagePreview,
+  galleryVideoPreview,
+  setGalleryVideoPreview,
+  galleryEditImageFile,
+  setGalleryEditImageFile,
+  galleryEditVideoFile,
+  setGalleryEditVideoFile,
+  galleryEditImagePreview,
+  setGalleryEditImagePreview,
+  galleryEditVideoPreview,
+  setGalleryEditVideoPreview,
   generateMeetLink,
   getApiUrl,
   getAvailableDates,
