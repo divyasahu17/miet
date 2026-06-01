@@ -1649,16 +1649,11 @@ useEffect(() => {
       formData.append('post_type', blogForm.post_type || 'blog');
 
       if (coverPhotoFile) {
-        formData.append('cover_photo', coverPhotoFile);
+        formData.append('thumbnail', coverPhotoFile);
       } else if (blogForm.cover_photo) {
-        formData.append('cover_photo', blogForm.cover_photo);
+        formData.append('thumbnail', blogForm.cover_photo);
       } else if (blogForm.thumbnail) {
-        formData.append('cover_photo', blogForm.thumbnail);
-      }
-
-      if (!coverPhotoFile) {
-        if (blogForm.thumbnail) formData.append('thumbnail', blogForm.thumbnail);
-        else if (blogForm.cover_photo) formData.append('thumbnail', blogForm.cover_photo);
+        formData.append('thumbnail', blogForm.thumbnail);
       }
 
       if (blogForm.video_url) formData.append('video_url', blogForm.video_url);

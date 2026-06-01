@@ -111,7 +111,7 @@ export default function BlogsPage() {
       formData.append('thumbnail', blogForm.thumbnail || blogForm.cover_photo || '');
       formData.append('cover_photo', blogForm.cover_photo || blogForm.thumbnail || '');
       if (blogForm.video_url) formData.append('video_url', blogForm.video_url);
-      if (coverPhotoFile) formData.append('cover_photo', coverPhotoFile);
+      if (coverPhotoFile) formData.append('thumbnail', coverPhotoFile);
       mediaImageFiles.forEach((file) => formData.append('media_images', file));
       mediaVideoFiles.forEach((file) => formData.append('media_videos', file));
 
