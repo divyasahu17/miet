@@ -2065,7 +2065,8 @@ useEffect(() => {
           is_free: true,
           attendee_emails: [],
           meeting_notes: '',
-          status: 'scheduled'
+          status: 'scheduled',
+          google_meet_link: ''
         });
         setWebinarEditId(null);
         setShowWebinarModal(false);
