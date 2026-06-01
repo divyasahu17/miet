@@ -1,8 +1,6 @@
 "use client";
 import React from 'react';
-import Image from 'next/image';
-import { FaThLarge, FaList, FaTags, FaUserCircle, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaUserMd, FaChevronDown, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaImages, FaCog } from "react-icons/fa";
-import Select from "react-select";
+import { FaChevronLeft, FaPlus } from "react-icons/fa";
 import { getBlogCoverPhotoUrl } from '@/utils/blog';
 
 export default function BlogsTab(props: any) {
@@ -29,142 +27,75 @@ export default function BlogsTab(props: any) {
     showBlogModal,
   } = props;
 
-  return (
-    <>
+  const [editorLoaded, setEditorLoaded] = React.useState(false);
+  const editorRef = React.useRef<any>(null);
+  const editorTextAreaRef = React.useRef<HTMLTextAreaElement>(null);
 
-            <section>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 24,
-                flexWrap: 'wrap',
-                gap: '16px'
-              }}>
-                <h2 style={{
-                  fontSize: 'clamp(20px, 3vw, 28px)',
-                  fontWeight: 700,
-                  color: '#667eea',
-                  margin: 0,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>Manage Blogs</h2>
-                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select
-                    value={blogForm.category}
-                    onChange={e => setBlogForm((f: any) => ({ ...f, category: e.target.value as 'Therapy' | 'Mental Health' | 'Education' | 'Support' | 'Technology' }))}
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(102, 126, 234, 0.2)',
-                      minWidth: '140px',
-                      fontSize: '14px',
-                      background: '#fff'
-                    }}
-                  >
-                    <option value="Therapy">Therapy</option>
-                    <option value="Mental Health">Mental Health</option>
-                    <option value="Education">Education</option>
-                    <option value="Support">Support</option>
-                    <option value="Technology">Technology</option>
-                  </select>
-                  <button
-                    onClick={() => {
-                      resetBlogForm?.();
-                      setBlogEditId(null);
-                      setShowBlogModal(true);
-                    }}
-                    style={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '12px',
-                      padding: '14px 24px',
-                      fontWeight: 700,
-                      fontSize: '16px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                  >
-                    <FaPlus size={16} /> Add Blog
-                  </button>
-                </div>
-              </div>
+  // Load CKEditor CDN script
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-              <DataTable
-                data={blogs}
-                columns={[
-                  {
-                    key: 'thumbnail',
-                    label: 'Thumbnail',
-                    sortable: false,
-                    render: (_value: string, blog: any) => {
-                      const coverUrl = getBlogCoverPhotoUrl(blog);
+    if ((window as any).ClassicEditor) {
+      setEditorLoaded(true);
+      return;
+    }
 
-                      return coverUrl ? (
-                        <img
-                          src={coverUrl}
-                          alt="Cover photo"
-                          style={{
-                            width: 50,
-                            height: 50,
-                            objectFit: 'cover',
-                            borderRadius: 8,
-                            border: '1px solid #e2e8f0'
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          width: 50,
-                          height: 50,
-                          background: '#f1f5f9',
-                          borderRadius: 8,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#94a3b8',
-                          fontSize: 12
-                        }}>
-                          No Image
-                        </div>
-                      );
-                    }
-                  },
-                  { key: 'category', label: 'Category', sortable: true },
-                  { key: 'title', label: 'Title', sortable: true },
-                  { key: 'author', label: 'Author', sortable: true },
-                  { key: 'status', label: 'Status', sortable: true },
-                  {
-                    key: 'created_at',
-                    label: 'Created',
-                    sortable: true,
-                    render: (value: string) => value ? value.split('T')[0] : '-'
-                  }
-                ]}
-                onView={(blog: any) => {
-                  // Handle blog view if needed
-                }}
-                onEdit={(blog: any) => {
-                  setBlogForm(blog);
-                  setBlogEditId(blog.id ?? null);
-                  setShowBlogModal(true);
-                }}
-                onDelete={(blog: any) => {
-                  setDeleteBlogId(blog.id ?? null);
-                  setDeleteBlogName(blog.title || 'this blog');
-                  setShowDeleteModal(true);
-                }}
-                searchPlaceholder="Search blogs..."
-                title="Blogs"
-              />
+    const script = document.createElement('script');
+    script.src = 'https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js';
+    script.async = true;
+    script.onload = () => {
+      setEditorLoaded(true);
+    };
+    document.body.appendChild(script);
+  }, []);
+
+  // Initialize CKEditor
+  React.useEffect(() => {
+    if (!editorLoaded || !editorTextAreaRef.current || !showBlogModal) return;
+    
+    // Destroy previous instance if exists
+    if (editorRef.current) {
+      editorRef.current.destroy().then(() => {
+        editorRef.current = null;
+        initEditor();
+      });
+    } else {
+      initEditor();
+    }
+
+    function initEditor() {
+      if (!editorTextAreaRef.current) return;
+      (window as any).ClassicEditor
+        .create(editorTextAreaRef.current, {
+          toolbar: [
+            'heading', '|',
+            'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|',
+            'insertTable', 'undo', 'redo'
+          ]
+        })
+        .then((editor: any) => {
+          editorRef.current = editor;
+          editor.setData(blogForm.description || '');
+          
+          editor.model.document.on('change:data', () => {
+            const data = editor.getData();
+            setBlogForm((f: any) => ({ ...f, description: data }));
+          });
+        })
+        .catch((error: any) => {
+          console.error('CKEditor initialization error:', error);
+        });
+    }
+
+    return () => {
+      if (editorRef.current) {
+        editorRef.current.destroy().then(() => {
+          editorRef.current = null;
+        });
+      }
+    };
+  }, [editorLoaded, showBlogModal, blogEditId]);
+
   if (showBlogModal) {
     return (
       <section style={{
@@ -321,27 +252,19 @@ export default function BlogsTab(props: any) {
               fontSize: '15px',
               marginBottom: '10px',
               display: 'block'
-            }}>Description</label>
-            <textarea
-              value={blogForm.description || ''}
-              onChange={e => setBlogForm((f: any) => ({ ...f, description: e.target.value }))}
-              required
-              style={{
-                padding: '14px 18px',
-                borderRadius: '12px',
-                border: '2px solid rgba(102, 126, 234, 0.15)',
-                fontSize: '16px',
-                width: '100%',
-                background: '#fff',
-                transition: 'all 0.2s ease',
-                outline: 'none',
-                color: '#334155',
-                minHeight: 140,
-                resize: 'vertical'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#667eea'}
-              onBlur={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.15)'}
-            />
+            }}>Description (CKEditor)</label>
+            <div style={{ color: '#334155' }}>
+              <textarea
+                ref={editorTextAreaRef}
+                style={{ display: 'none' }}
+                defaultValue={blogForm.description || ''}
+              />
+              {!editorLoaded && (
+                <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b' }}>
+                  Loading CKEditor...
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -481,7 +404,7 @@ export default function BlogsTab(props: any) {
                     border: '2px solid rgba(102, 126, 234, 0.15)'
                   }}
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.src = '/intro.webp';
                   }}
                 />
               </div>
@@ -722,9 +645,7 @@ export default function BlogsTab(props: any) {
           searchPlaceholder="Search blogs..."
           title="Blogs"
         />
-      </section>}
-            </section>
-          
+      </section>
     </>
   );
 }
