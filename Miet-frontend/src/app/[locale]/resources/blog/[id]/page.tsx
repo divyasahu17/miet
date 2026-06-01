@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/utils/api';
-import { BlogRecord, getBlogCoverPhotoUrl, getBlogPrimaryVideoUrl, normalizeBlogMediaAssets, resolveHtmlContentUrls } from '@/utils/blog';
+import { BlogRecord, getBlogCoverPhotoUrl, getBlogPrimaryVideoUrl, normalizeBlogMediaAssets, getBlogSlug } from '@/utils/blog';
 
 export default function BlogDetailPage({ params }: { params: any }) {
   const resolvedParams = params && (params instanceof Promise || (typeof params === 'object' && 'then' in params)) ? React.use(params as any) : params;
@@ -29,23 +29,40 @@ export default function BlogDetailPage({ params }: { params: any }) {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(getApiUrl(`api/blogs/${targetId}`));
+      if (/^\d+$/.test(targetId)) {
+        const response = await fetch(getApiUrl(`api/blogs/${targetId}`));
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch blog: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`Failed to fetch blog: ${response.status}`);
+        }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.success && data.blog) {
-        setBlog(data.blog);
-      } else if (data.blog) {
-        setBlog(data.blog);
+        if (data.success && data.blog) {
+          setBlog(data.blog);
+        } else if (data.blog) {
+          setBlog(data.blog);
+        } else {
+          throw new Error('Blog not found');
+        }
       } else {
-        throw new Error('Blog not found');
+        const response = await fetch(getApiUrl('api/blogs'));
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch blogs: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const allBlogs: BlogRecord[] = data.blogs || [];
+        const matchedBlog = allBlogs.find(b => getBlogSlug(b) === targetId);
+
+        if (matchedBlog) {
+          setBlog(matchedBlog);
+        } else {
+          throw new Error('Blog not found');
+        }
       }
     } catch (err) {
-
       setError(err instanceof Error ? err.message : 'Failed to load blog');
     } finally {
       setLoading(false);
@@ -334,7 +351,7 @@ export default function BlogDetailPage({ params }: { params: any }) {
                 color: '#4b5563',
                 lineHeight: '1.8'
               }}
-              dangerouslySetInnerHTML={{ __html: resolveHtmlContentUrls(blog.description) }}
+              dangerouslySetInnerHTML={{ __html: blog.description }}
             />
           </div>
         </div>

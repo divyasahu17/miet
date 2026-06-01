@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { FaChevronLeft, FaPlus } from "react-icons/fa";
-import { getBlogCoverPhotoUrl } from '@/utils/blog';
+import { getBlogCoverPhotoUrl, getBlogSlug } from '@/utils/blog';
 import { useParams } from 'next/navigation';
 
 export default function BlogsTab(props: any) {
@@ -395,19 +395,11 @@ export default function BlogsTab(props: any) {
               onBlur={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.15)'}
             />
 
-            {(coverPhotoPreview || blogForm.cover_photo || blogForm.thumbnail) ? (
+            {coverPhotoPreview ? (
               <div style={{ marginTop: '16px' }}>
                 <span style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '8px' }}>Cover Photo Preview:</span>
                 <img
-                  src={
-                    coverPhotoPreview ||
-                    (() => {
-                      const path = blogForm.cover_photo || blogForm.thumbnail || '';
-                      if (!path) return '';
-                      if (path.startsWith('data:') || path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) return path;
-                      return getBlogCoverPhotoUrl(blogForm as any);
-                    })()
-                  }
+                  src={coverPhotoPreview}
                   alt="Cover preview"
                   style={{
                     width: '180px',
@@ -663,7 +655,7 @@ export default function BlogsTab(props: any) {
             }
           ]}
           onView={(blog: any) => {
-            window.open(`/${locale}/resources/blog/${blog.id}`, '_blank');
+            window.open(`/${locale}/resources/blog/${getBlogSlug(blog)}`, '_blank');
           }}
           onEdit={(blog: any) => {
             setBlogForm(blog);

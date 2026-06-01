@@ -522,15 +522,7 @@ export default function BlogsPage() {
                     <div style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Preview:</div>
                       <img
-                        src={
-                          coverPhotoPreview ||
-                          (() => {
-                            const path = blogForm.cover_photo || blogForm.thumbnail || '';
-                            if (!path) return '';
-                            if (path.startsWith('data:') || path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) return path;
-                            return getBlogCoverPhotoUrl(blogForm as any);
-                          })()
-                        }
+                        src={coverPhotoPreview || blogForm.cover_photo || blogForm.thumbnail}
                         alt="Thumbnail preview"
                         style={{
                           width: 120,

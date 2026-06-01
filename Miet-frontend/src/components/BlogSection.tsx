@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { getApiUrl, getBackendUrl } from '@/utils/api';
-import { BlogRecord, getBlogCoverPhotoUrl } from '@/utils/blog';
+import { BlogRecord, getBlogCoverPhotoUrl, getBlogSlug } from '@/utils/blog';
 
 interface TransformedBlog {
   id: number;
@@ -369,7 +369,7 @@ export default function BlogSection() {
                 border: '1px solid rgba(255,255,255,0.2)',
                 minHeight: '450px'
               }}
-              onClick={() => router.push(`/${locale}/resources/blog/${post.id}`)}
+              onClick={() => router.push(`/${locale}/resources/blog/${getBlogSlug(post)}`)}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
                 e.currentTarget.style.boxShadow = '0 30px 80px rgba(99, 102, 241, 0.25)';
@@ -488,7 +488,7 @@ export default function BlogSection() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/${locale}/resources/blog/${post.id}`);
+                      router.push(`/${locale}/resources/blog/${getBlogSlug(post)}`);
                     }}
                     style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
