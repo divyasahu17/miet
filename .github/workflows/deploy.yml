@@ -23,12 +23,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sshpass rsync
 
-      - name: Install Frontend dependencies & Build Locally
-        run: |
-          cd Miet-frontend
-          npm install
-          npm run build
-
       - name: Deploy Backend files
         env:
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
@@ -47,6 +41,7 @@ jobs:
           sshpass -p "$SSH_PASS" rsync -avz -e "ssh -o StrictHostKeyChecking=no -p 22" \
             --exclude='node_modules' \
             --exclude='.env' \
+            --exclude='.next' \
             --exclude='database.sqlite' \
             ./Miet-frontend/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/var/www/html/miet-frontend/
 
@@ -62,7 +57,8 @@ jobs:
             \
             echo 'Installing Frontend dependencies...' && \
             cd /var/www/html/miet-frontend && \
-            npm install --production && \
+            npm install && \
+            npm run build && \
             pm2 restart miet-frontend && \
             \
             echo 'Deployment complete!'
