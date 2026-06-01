@@ -4130,11 +4130,13 @@ app.put('/api/blogs/:id', blogUpload.fields([
       thumbnail = req.body.cover_photo;
     }
 
-    // Process media assets (append new uploads to existing ones)
+    // Process media assets (append new uploads to existing/form-sent ones)
     let media_assets = [];
-    if (existingBlog.media_assets) {
+    const baseAssets = req.body.media_assets || existingBlog.media_assets;
+    if (baseAssets) {
       try {
-        media_assets = JSON.parse(existingBlog.media_assets) || [];
+        media_assets = typeof baseAssets === 'string' ? JSON.parse(baseAssets) : baseAssets;
+        if (!Array.isArray(media_assets)) media_assets = [];
       } catch (e) {
         media_assets = [];
       }

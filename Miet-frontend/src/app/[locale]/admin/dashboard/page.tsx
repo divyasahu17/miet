@@ -1685,6 +1685,10 @@ useEffect(() => {
 
       if (blogForm.video_url) formData.append('video_url', blogForm.video_url);
 
+      if (blogForm.media_assets) {
+        formData.append('media_assets', typeof blogForm.media_assets === 'string' ? blogForm.media_assets : JSON.stringify(blogForm.media_assets));
+      }
+
       mediaImageFiles.forEach((file) => formData.append('media_images', file));
       mediaVideoFiles.forEach((file) => formData.append('media_videos', file));
 

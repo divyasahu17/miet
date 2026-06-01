@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { FaChevronLeft, FaPlus } from "react-icons/fa";
-import { getBlogCoverPhotoUrl, getBlogSlug } from '@/utils/blog';
+import { getBlogCoverPhotoUrl, getBlogSlug, normalizeBlogMediaAssets } from '@/utils/blog';
 import { useParams } from 'next/navigation';
 
 export default function BlogsTab(props: any) {
@@ -444,6 +444,78 @@ export default function BlogsTab(props: any) {
               </div>
             ) : null}
           </div>
+
+          {blogForm.media_assets && normalizeBlogMediaAssets(blogForm.media_assets).length > 0 && (
+            <div style={{ gridColumn: '1 / -1', marginTop: '10px', marginBottom: '15px' }}>
+              <label style={{
+                fontWeight: 600,
+                color: '#667eea',
+                fontSize: '15px',
+                marginBottom: '10px',
+                display: 'block'
+              }}>Existing Media Assets (Click × to Delete)</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                gap: '12px'
+              }}>
+                {normalizeBlogMediaAssets(blogForm.media_assets).map((asset: any, index: number) => (
+                  <div key={index} style={{
+                    position: 'relative',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: '2px solid rgba(102, 126, 234, 0.15)',
+                    height: '80px',
+                    background: '#f8fafc'
+                  }}>
+                    {asset.type === 'video' ? (
+                      <video src={asset.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <img src={asset.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allAssets = normalizeBlogMediaAssets(blogForm.media_assets);
+                        const filteredAssets = allAssets.map(a => {
+                          // keep absolute paths relative to backend so the DB is happy
+                          const url = a.url;
+                          const relativeUrl = url.includes('/uploads/') ? '/uploads/' + url.split('/uploads/')[1] : url;
+                          return { ...a, url: relativeUrl };
+                        }).filter((_, i) => i !== index);
+
+                        setBlogForm((f: any) => ({
+                          ...f,
+                          media_assets: filteredAssets.length > 0 ? JSON.stringify(filteredAssets) : null
+                        }));
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '4px',
+                        background: 'rgba(239, 68, 68, 0.95)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        lineHeight: '1',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ gridColumn: '1 / -1' }}>
             <label style={{
