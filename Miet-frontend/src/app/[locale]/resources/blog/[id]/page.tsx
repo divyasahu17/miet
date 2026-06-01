@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { getApiUrl } from '@/utils/api';
-import { BlogRecord, getBlogCoverPhotoUrl, getBlogPrimaryVideoUrl, normalizeBlogMediaAssets } from '@/utils/blog';
+import { BlogRecord, getBlogCoverPhotoUrl, getBlogPrimaryVideoUrl, normalizeBlogMediaAssets, resolveHtmlContentUrls } from '@/utils/blog';
 
 export default function BlogDetailPage({ params }: { params: any }) {
   const resolvedParams = params && (params instanceof Promise || (typeof params === 'object' && 'then' in params)) ? React.use(params as any) : params;
@@ -334,7 +334,7 @@ export default function BlogDetailPage({ params }: { params: any }) {
                 color: '#4b5563',
                 lineHeight: '1.8'
               }}
-              dangerouslySetInnerHTML={{ __html: blog.description }}
+              dangerouslySetInnerHTML={{ __html: resolveHtmlContentUrls(blog.description) }}
             />
           </div>
         </div>

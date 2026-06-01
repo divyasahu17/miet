@@ -16,7 +16,9 @@ export const getApiUrl = (endpoint: string): string => {
   }
 
   // In development or server-side, use the backend URL directly
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const isProd = process.env.NODE_ENV === 'production';
+  const defaultUrl = isProd ? 'https://api.miet.life' : 'http://localhost:4000';
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || defaultUrl;
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   return `${cleanBaseUrl}${cleanEndpoint}`;
 };
@@ -24,6 +26,8 @@ export const getApiUrl = (endpoint: string): string => {
 // Get the backend URL for constructing image URLs and other static resources
 // These should always use the backend URL directly
 export const getBackendUrl = (): string => {
-  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+  const isProd = process.env.NODE_ENV === 'production';
+  const defaultUrl = isProd ? 'https://api.miet.life' : 'http://localhost:4000';
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || defaultUrl;
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 };

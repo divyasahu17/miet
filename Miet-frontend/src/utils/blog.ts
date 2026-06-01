@@ -103,3 +103,14 @@ export const getBlogPrimaryVideoUrl = (blog: Pick<BlogRecord, 'video_url' | 'med
   const videoAsset = mediaAssets.find((asset) => asset.type === 'video');
   return videoAsset?.url ?? '';
 };
+
+export const resolveHtmlContentUrls = (html?: string | null): string => {
+  if (!html) return '';
+  const backendUrl = getBackendUrl();
+  // Match relative paths for uploads (e.g. /uploads/ or uploads/)
+  // and replace with absolute backend URLs
+  return html.replace(/src=["'](\/?uploads\/[^"']+)["']/gi, (match, path) => {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `src="${backendUrl}${normalizedPath}"`;
+  });
+};
