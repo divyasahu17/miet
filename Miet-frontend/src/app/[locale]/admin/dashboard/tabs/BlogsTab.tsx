@@ -70,12 +70,41 @@ export default function BlogsTab(props: any) {
 
     function initEditor() {
       if (!editorTextAreaRef.current) return;
+
+      class Base64UploadAdapter {
+        loader: any;
+        constructor(loader: any) {
+          this.loader = loader;
+        }
+        upload() {
+          return this.loader.file
+            .then((file: any) => new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                resolve({ default: reader.result });
+              };
+              reader.onerror = (error) => {
+                reject(error);
+              };
+              reader.readAsDataURL(file);
+            }));
+        }
+        abort() {}
+      }
+
+      function Base64UploadAdapterPlugin(editor: any) {
+        editor.plugins.get('FileRepository').createUploadAdapter = (loader: any) => {
+          return new Base64UploadAdapter(loader);
+        };
+      }
+
       (window as any).ClassicEditor
         .create(editorTextAreaRef.current, {
+          extraPlugins: [Base64UploadAdapterPlugin],
           toolbar: [
             'heading', '|',
             'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', '|',
-            'insertTable', 'undo', 'redo'
+            'imageUpload', 'mediaEmbed', 'insertTable', 'undo', 'redo'
           ]
         })
         .then((editor: any) => {
