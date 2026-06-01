@@ -3884,15 +3884,22 @@ const blogStorage = multer.diskStorage({
 const blogUpload = multer({
   storage: blogStorage,
   fileFilter: (req, file, cb) => {
-    // Allow only image files
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
+    if (file.fieldname === 'media_videos') {
+      if (file.mimetype.startsWith('video/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only video files are allowed for media_videos'), false);
+      }
     } else {
-      cb(new Error('Only image files are allowed for thumbnails'), false);
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed for thumbnails and media_images'), false);
+      }
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 50 * 1024 * 1024 // 50MB limit
   }
 });
 
@@ -3950,19 +3957,46 @@ const validateBlog = (req, res, next) => {
 };
 
 // POST /api/blogs - Create a new blog
-app.post('/api/blogs', blogUpload.single('thumbnail'), validateBlog, async (req, res) => {
+app.post('/api/blogs', blogUpload.fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'media_images', maxCount: 10 },
+  { name: 'media_videos', maxCount: 10 }
+]), validateBlog, async (req, res) => {
   try {
-    const { title, description, category, author, status } = req.body;
-    const thumbnail = req.file ? `/uploads/blogs/${req.file.filename}` : null;
+    const { title, description, category, author, status, post_type, video_url } = req.body;
+    
+    const thumbnailFile = req.files && req.files['thumbnail'] ? req.files['thumbnail'][0] : null;
+    const thumbnail = thumbnailFile ? `/uploads/blogs/${thumbnailFile.filename}` : req.body.thumbnail || null;
+    
+    // Process media assets
+    const media_assets = [];
+    if (req.files && req.files['media_images']) {
+      req.files['media_images'].forEach(file => {
+        media_assets.push({
+          type: 'image',
+          url: `/uploads/blogs/${file.filename}`
+        });
+      });
+    }
+    if (req.files && req.files['media_videos']) {
+      req.files['media_videos'].forEach(file => {
+        media_assets.push({
+          type: 'video',
+          url: `/uploads/blogs/${file.filename}`
+        });
+      });
+    }
+
+    const mediaAssetsStr = media_assets.length > 0 ? JSON.stringify(media_assets) : null;
 
     // Ensure status is valid, default to 'draft' if not provided or invalid
     const validStatuses = ['active', 'inactive', 'published', 'draft', 'pending', 'archived', 'live', 'scheduled', 'private', 'public', 'review', 'approved', 'rejected', 'trash', 'deleted'];
     const validStatus = (status && validStatuses.includes(status)) ? status : 'draft';
 
     const result = await db.run(`
-      INSERT INTO blogs (title, description, category, thumbnail, author, status, date)
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `, [title.trim(), description.trim(), category, thumbnail, author.trim(), validStatus]);
+      INSERT INTO blogs (title, description, category, thumbnail, author, status, post_type, video_url, media_assets, date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `, [title.trim(), description.trim(), category, thumbnail, author.trim(), validStatus, post_type || 'blog', video_url || null, mediaAssetsStr]);
 
     const blogId = result.lastID;
 
@@ -4061,10 +4095,14 @@ app.get('/api/blogs/:id', async (req, res) => {
 });
 
 // PUT /api/blogs/:id - Update a blog
-app.put('/api/blogs/:id', blogUpload.single('thumbnail'), validateBlog, async (req, res) => {
+app.put('/api/blogs/:id', blogUpload.fields([
+  { name: 'thumbnail', maxCount: 1 },
+  { name: 'media_images', maxCount: 10 },
+  { name: 'media_videos', maxCount: 10 }
+]), validateBlog, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category, author, status } = req.body;
+    const { title, description, category, author, status, post_type, video_url } = req.body;
 
     // Check if blog exists
     const existingBlog = await db.get('SELECT * FROM blogs WHERE id = ?', id);
@@ -4076,16 +4114,50 @@ app.put('/api/blogs/:id', blogUpload.single('thumbnail'), validateBlog, async (r
     }
 
     let thumbnail = existingBlog.thumbnail;
-    if (req.file) {
-      // Delete old thumbnail if it exists
-      if (existingBlog.thumbnail) {
+    const thumbnailFile = req.files && req.files['thumbnail'] ? req.files['thumbnail'][0] : null;
+    if (thumbnailFile) {
+      // Delete old thumbnail if it exists and was a local upload
+      if (existingBlog.thumbnail && existingBlog.thumbnail.startsWith('/uploads/')) {
         const oldThumbnailPath = path.join(process.cwd(), existingBlog.thumbnail);
         if (fs.existsSync(oldThumbnailPath)) {
           fs.unlinkSync(oldThumbnailPath);
         }
       }
-      thumbnail = `/uploads/blogs/${req.file.filename}`;
+      thumbnail = `/uploads/blogs/${thumbnailFile.filename}`;
+    } else if (req.body.thumbnail) {
+      thumbnail = req.body.thumbnail;
+    } else if (req.body.cover_photo) {
+      thumbnail = req.body.cover_photo;
     }
+
+    // Process media assets (append new uploads to existing ones)
+    let media_assets = [];
+    if (existingBlog.media_assets) {
+      try {
+        media_assets = JSON.parse(existingBlog.media_assets) || [];
+      } catch (e) {
+        media_assets = [];
+      }
+    }
+
+    if (req.files && req.files['media_images']) {
+      req.files['media_images'].forEach(file => {
+        media_assets.push({
+          type: 'image',
+          url: `/uploads/blogs/${file.filename}`
+        });
+      });
+    }
+    if (req.files && req.files['media_videos']) {
+      req.files['media_videos'].forEach(file => {
+        media_assets.push({
+          type: 'video',
+          url: `/uploads/blogs/${file.filename}`
+        });
+      });
+    }
+
+    const mediaAssetsStr = media_assets.length > 0 ? JSON.stringify(media_assets) : existingBlog.media_assets;
 
     // Ensure status is valid, default to 'draft' if not provided or invalid
     const validStatuses = ['active', 'inactive', 'published', 'draft', 'pending', 'archived', 'live', 'scheduled', 'private', 'public', 'review', 'approved', 'rejected', 'trash', 'deleted'];
@@ -4093,9 +4165,9 @@ app.put('/api/blogs/:id', blogUpload.single('thumbnail'), validateBlog, async (r
 
     await db.run(`
       UPDATE blogs
-      SET title = ?, description = ?, category = ?, thumbnail = ?, author = ?, status = ?, date = CURRENT_TIMESTAMP
+      SET title = ?, description = ?, category = ?, thumbnail = ?, author = ?, status = ?, post_type = ?, video_url = ?, media_assets = ?, date = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [title.trim(), description.trim(), category, thumbnail, author.trim(), validStatus, id]);
+    `, [title.trim(), description.trim(), category, thumbnail, author.trim(), validStatus, post_type || 'blog', video_url || null, mediaAssetsStr, id]);
 
     // Fetch the updated blog
     const updatedBlog = await db.get('SELECT * FROM blogs WHERE id = ?', id);
@@ -7077,7 +7149,22 @@ async function ensureBlogsTable() {
     const tableExists = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='blogs'");
 
     if (tableExists) {
-      console.log('Blogs table already exists');
+      console.log('Blogs table already exists, checking for missing columns...');
+      const columns = await db.all("PRAGMA table_info(blogs)");
+      const columnNames = columns.map(c => c.name);
+
+      if (!columnNames.includes('post_type')) {
+        await db.exec("ALTER TABLE blogs ADD COLUMN post_type TEXT DEFAULT 'blog'");
+        console.log('Added column post_type to blogs table');
+      }
+      if (!columnNames.includes('video_url')) {
+        await db.exec("ALTER TABLE blogs ADD COLUMN video_url TEXT");
+        console.log('Added column video_url to blogs table');
+      }
+      if (!columnNames.includes('media_assets')) {
+        await db.exec("ALTER TABLE blogs ADD COLUMN media_assets TEXT");
+        console.log('Added column media_assets to blogs table');
+      }
       return;
     }
 
@@ -7091,7 +7178,10 @@ async function ensureBlogsTable() {
         thumbnail TEXT,
         author TEXT NOT NULL,
         date DATETIME DEFAULT CURRENT_TIMESTAMP,
-        status TEXT CHECK(status IN ('active', 'inactive', 'published', 'draft', 'pending', 'archived', 'live', 'scheduled', 'private', 'public', 'review', 'approved', 'rejected', 'trash', 'deleted')) NOT NULL DEFAULT 'draft'
+        status TEXT CHECK(status IN ('active', 'inactive', 'published', 'draft', 'pending', 'archived', 'live', 'scheduled', 'private', 'public', 'review', 'approved', 'rejected', 'trash', 'deleted')) NOT NULL DEFAULT 'draft',
+        post_type TEXT DEFAULT 'blog',
+        video_url TEXT,
+        media_assets TEXT
       );
     `);
 
