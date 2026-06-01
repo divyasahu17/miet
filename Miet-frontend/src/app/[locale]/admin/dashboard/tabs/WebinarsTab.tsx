@@ -113,13 +113,19 @@ export default function WebinarsTab(props: any) {
                     duration_minutes: duration
                   }));
                 }}
+                onClick={(e) => {
+                  try {
+                    e.currentTarget.showPicker();
+                  } catch (err) {}
+                }}
                 required
                 style={{
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: '2px solid rgba(102, 126, 234, 0.2)',
-                  fontSize: '16px'
+                  fontSize: '16px',
+                  cursor: 'pointer'
                 }}
               />
             </div>
@@ -138,13 +144,19 @@ export default function WebinarsTab(props: any) {
                     duration_minutes: duration
                   }));
                 }}
+                onClick={(e) => {
+                  try {
+                    e.currentTarget.showPicker();
+                  } catch (err) {}
+                }}
                 required
                 style={{
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: '2px solid rgba(102, 126, 234, 0.2)',
-                  fontSize: '16px'
+                  fontSize: '16px',
+                  cursor: 'pointer'
                 }}
               />
             </div>
