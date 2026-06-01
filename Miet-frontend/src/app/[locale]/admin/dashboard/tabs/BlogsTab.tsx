@@ -2,8 +2,12 @@
 import React from 'react';
 import { FaChevronLeft, FaPlus } from "react-icons/fa";
 import { getBlogCoverPhotoUrl } from '@/utils/blog';
+import { useParams } from 'next/navigation';
 
 export default function BlogsTab(props: any) {
+  const params = useParams();
+  const locale = params?.locale || 'en';
+
   const {
     DataTable,
     blogs,
@@ -25,6 +29,7 @@ export default function BlogsTab(props: any) {
     setShowBlogModal,
     setShowDeleteModal,
     showBlogModal,
+    handleToggleBlogStatus,
   } = props;
 
   const [editorLoaded, setEditorLoaded] = React.useState(false);
@@ -621,7 +626,27 @@ export default function BlogsTab(props: any) {
             { key: 'category', label: 'Category', sortable: true },
             { key: 'title', label: 'Title', sortable: true },
             { key: 'author', label: 'Author', sortable: true },
-            { key: 'status', label: 'Status', sortable: true },
+            {
+              key: 'status',
+              label: 'Status',
+              sortable: true,
+              render: (value: string, row: any) => {
+                const isActive = value === 'active' || value === 'published' || value === 'live';
+                return (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={() => handleToggleBlogStatus(row)}
+                      style={{ width: 32, height: 18, cursor: 'pointer' }}
+                    />
+                    <span style={{ color: isActive ? '#38a169' : '#e53e3e', fontWeight: 600, textTransform: 'capitalize' }}>
+                      {value}
+                    </span>
+                  </label>
+                );
+              }
+            },
             {
               key: 'created_at',
               label: 'Created',
@@ -630,7 +655,7 @@ export default function BlogsTab(props: any) {
             }
           ]}
           onView={(blog: any) => {
-            // Handle blog view if needed
+            window.open(`/${locale}/resources/blog/${blog.id}`, '_blank');
           }}
           onEdit={(blog: any) => {
             setBlogForm(blog);

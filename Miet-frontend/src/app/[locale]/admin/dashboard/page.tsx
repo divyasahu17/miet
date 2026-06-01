@@ -1246,6 +1246,33 @@ const fetchOrders = async () => {
     fetchUsers();
   }
 
+  async function handleToggleBlogStatus(b: any) {
+    const token = localStorage.getItem("admin_jwt");
+    const isCurrentlyActive = b.status === 'active' || b.status === 'published' || b.status === 'live';
+    const newStatus = isCurrentlyActive ? 'inactive' : 'active';
+
+    const formData = new FormData();
+    formData.append('title', b.title || '');
+    formData.append('description', b.description || '');
+    formData.append('category', b.category || 'Therapy');
+    formData.append('author', b.author || '');
+    formData.append('status', newStatus);
+    formData.append('post_type', b.post_type || 'blog');
+
+    try {
+      const res = await fetch(getApiUrl(`api/blogs/${b.id}`), {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (res.ok) {
+        fetchBlogs();
+      }
+    } catch (error) {
+      console.error('Error toggling blog status:', error);
+    }
+  }
+
   // Service CRUD
 
 
@@ -2308,6 +2335,7 @@ useEffect(() => {
   handleToggleApproval,
   handleToggleConsultantStatus,
   handleToggleUserStatus,
+  handleToggleBlogStatus,
   handleUserDelete,
   handleUserEdit,
   handleUserSubmit,
@@ -2630,6 +2658,7 @@ useEffect(() => {
   handleToggleApproval,
   handleToggleConsultantStatus,
   handleToggleUserStatus,
+  handleToggleBlogStatus,
   handleUserDelete,
   handleUserEdit,
   handleUserSubmit,
