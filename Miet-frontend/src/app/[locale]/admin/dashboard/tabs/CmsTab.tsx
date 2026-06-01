@@ -119,7 +119,9 @@ export default function CmsTab(props: any) {
                       </tr>
                     </thead>
                     <tbody>
-                      {cmsContent.map((item: any, idx: number) => (
+                      {cmsContent
+                        .filter((item: any) => !cmsPageFilter || cmsPageFilter === 'all' || item.page_key === cmsPageFilter)
+                        .map((item: any, idx: number) => (
                         <tr key={item.id || idx} style={{
                           borderBottom: '1px solid rgba(102, 126, 234, 0.08)',
                           transition: 'background 0.2s'
@@ -178,7 +180,7 @@ export default function CmsTab(props: any) {
                     </tbody>
                   </table>
                 </div>
-                {cmsContent.length === 0 && (
+                {cmsContent.filter((item: any) => !cmsPageFilter || cmsPageFilter === 'all' || item.page_key === cmsPageFilter).length === 0 && (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#6b7280' }}>
                     <FaCog size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
                     <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: 8 }}>No CMS content yet</h3>
