@@ -6,6 +6,7 @@ interface GalleryImage {
   title: string;
   description: string;
   image_path: string;
+  video_path?: string;
   display_order: number;
   status: string;
 }
@@ -52,6 +53,14 @@ export default function ImageGallery() {
     if (img.image_path.startsWith('http')) return img.image_path;
     const baseUrl = getBackendUrl();
     const cleanPath = img.image_path.startsWith('/') ? img.image_path : `/${img.image_path}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  const getVideoUrl = (img: GalleryImage) => {
+    if (!img.video_path) return '';
+    if (img.video_path.startsWith('http')) return img.video_path;
+    const baseUrl = getBackendUrl();
+    const cleanPath = img.video_path.startsWith('/') ? img.video_path : `/${img.video_path}`;
     return `${baseUrl}${cleanPath}`;
   };
 
@@ -285,7 +294,7 @@ export default function ImageGallery() {
         padding: '0 clamp(1rem, 4vw, 4rem)',
         zIndex: 2
       }}>
-        {/* Main Image Display */}
+        {/* Main Image/Video Display */}
         <div style={{
           position: 'relative',
           width: '100%',
@@ -293,24 +302,75 @@ export default function ImageGallery() {
           borderRadius: '24px',
           overflow: 'hidden',
           boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
-          cursor: 'pointer'
+          cursor: images[currentIndex]?.video_path ? 'default' : 'pointer'
         }}
-          onClick={() => { setLightboxIndex(currentIndex); setLightboxOpen(true); }}
+          onClick={() => {
+            if (!images[currentIndex]?.video_path) {
+              setLightboxIndex(currentIndex);
+              setLightboxOpen(true);
+            }
+          }}
         >
-          <img
-            src={getImageUrl(images[currentIndex])}
-            alt={images[currentIndex]?.title || 'Gallery image'}
+          {images[currentIndex]?.video_path ? (
+            <video
+              src={getVideoUrl(images[currentIndex])}
+              controls
+              playsInline
+              style={{
+                width: '100%',
+                height: 'clamp(300px, 45vw, 550px)',
+                objectFit: 'cover',
+                transition: 'opacity 0.6s ease',
+                opacity: isTransitioning ? 0.6 : 1,
+                display: 'block',
+                background: '#000'
+              }}
+            />
+          ) : (
+            <img
+              src={getImageUrl(images[currentIndex])}
+              alt={images[currentIndex]?.title || 'Gallery image'}
+              style={{
+                width: '100%',
+                height: 'clamp(300px, 45vw, 550px)',
+                objectFit: 'cover',
+                transition: 'opacity 0.6s ease, transform 0.6s ease',
+                opacity: isTransitioning ? 0.6 : 1,
+                transform: isTransitioning ? 'scale(1.02)' : 'scale(1)',
+                display: 'block'
+              }}
+              onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
+            />
+          )}
+
+          {/* Expand/Zoom Button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightboxIndex(currentIndex); setLightboxOpen(true); }}
             style={{
-              width: '100%',
-              height: 'clamp(300px, 45vw, 550px)',
-              objectFit: 'cover',
-              transition: 'opacity 0.6s ease, transform 0.6s ease',
-              opacity: isTransitioning ? 0.6 : 1,
-              transform: isTransitioning ? 'scale(1.02)' : 'scale(1)',
-              display: 'block'
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 10,
+              transition: 'all 0.3s ease'
             }}
-            onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
-          />
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.5)'}
+            title="Expand View"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+          </button>
 
           {/* Gradient overlay at bottom */}
           <div style={{
@@ -416,12 +476,50 @@ export default function ImageGallery() {
                 onMouseLeave={(e) => { if (idx !== currentIndex) e.currentTarget.style.opacity = '0.5'; }}
                 aria-label={`Go to slide ${idx + 1}`}
               >
-                <img
-                  src={getImageUrl(img)}
-                  alt={img.title || `Thumbnail ${idx + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
-                />
+                {img.image_path ? (
+                  <img
+                    src={getImageUrl(img)}
+                    alt={img.title || `Thumbnail ${idx + 1}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
+                  />
+                ) : img.video_path ? (
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    background: '#111827',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    <video
+                      src={getVideoUrl(img)}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      preload="metadata"
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '0.8rem'
+                    }}>
+                      ▶
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src="/intro.webp"
+                    alt="Placeholder"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -510,16 +608,32 @@ export default function ImageGallery() {
           >
             &#8249;
           </button>
-          <img
-            src={getImageUrl(images[lightboxIndex])}
-            alt={images[lightboxIndex]?.title || 'Gallery image'}
-            style={{
-              maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain',
-              borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
-          />
+          {images[lightboxIndex]?.video_path ? (
+            <video
+              src={getVideoUrl(images[lightboxIndex])}
+              controls
+              autoPlay
+              playsInline
+              style={{
+                maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain',
+                borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                outline: 'none',
+                background: '#000'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={getImageUrl(images[lightboxIndex])}
+              alt={images[lightboxIndex]?.title || 'Gallery image'}
+              style={{
+                maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain',
+                borderRadius: '12px', boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
+            />
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % images.length); }}
             style={{
