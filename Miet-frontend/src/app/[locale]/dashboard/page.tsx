@@ -59,6 +59,9 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -109,6 +112,9 @@ export default function UserDashboard() {
       };
 
       setUser(mappedUser);
+      setFirstName(first_name);
+      setLastName(last_name);
+      setPhone(supabaseUser.user_metadata?.phone || '');
 
       // Get Supabase access token for API calls
       const token = session.access_token;
@@ -152,6 +158,9 @@ export default function UserDashboard() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.user) {
+          setFirstName(data.user.first_name || '');
+          setLastName(data.user.last_name || '');
+          setPhone(data.user.phone || '');
           const userAddress = data.user.addresses && data.user.addresses.length > 0 
             ? data.user.addresses[0] 
             : null;
@@ -173,8 +182,16 @@ export default function UserDashboard() {
     }
   };
 
-  const handleSaveAddress = async (e: React.FormEvent) => {
+  const handleSaveProfileAndAddress = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!firstName || !lastName) {
+      addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'First name and last name are required'
+      });
+      return;
+    }
     if (!addressLine1 || !city || !state || !zipCode) {
       addNotification({
         type: 'error',
@@ -198,6 +215,42 @@ export default function UserDashboard() {
       
       const token = session.access_token;
       
+      // 1. Update user profile first_name, last_name, phone
+      const profileResponse = await fetch(getApiUrl('api/auth/profile'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone
+        })
+      });
+      
+      const profileData = await profileResponse.json();
+      if (!profileResponse.ok || !profileData.success) {
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: profileData.message || 'Failed to update profile details'
+        });
+        setSavingProfile(false);
+        return;
+      }
+
+      // Update user context
+      if (user) {
+        setUser({
+          ...user,
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone
+        });
+      }
+
+      // 2. Update/create address
       const payload = {
         addressLine1,
         city,
@@ -229,7 +282,7 @@ export default function UserDashboard() {
         addNotification({
           type: 'success',
           title: 'Success',
-          message: 'Address saved successfully'
+          message: 'Profile and address updated successfully'
         });
         if (data.address && data.address.id) {
           setCurrentAddressId(data.address.id);
@@ -242,11 +295,11 @@ export default function UserDashboard() {
         });
       }
     } catch (error) {
-      console.error('Error saving address:', error);
+      console.error('Error saving profile/address:', error);
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Something went wrong while saving address'
+        message: 'Something went wrong while saving details'
       });
     } finally {
       setSavingProfile(false);
@@ -1810,14 +1863,14 @@ export default function UserDashboard() {
                   Loading profile data...
                 </div>
               ) : (
-                <form onSubmit={handleSaveAddress}>
+                <form onSubmit={handleSaveProfileAndAddress}>
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                     gap: '24px',
                     marginBottom: '32px'
                   }}>
-                    {/* Personal Information (Read-only) */}
+                    {/* Personal Information */}
                     <div style={{
                       background: '#f8fafc',
                       borderRadius: '12px',
@@ -1837,21 +1890,42 @@ export default function UserDashboard() {
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
-                            First Name
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                            First Name *
                           </label>
                           <input
                             type="text"
-                            value={user.first_name || ''}
-                            disabled
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            required
                             style={{
                               width: '100%',
                               padding: '10px 14px',
                               borderRadius: '8px',
                               border: '1px solid #cbd5e1',
-                              backgroundColor: '#e2e8f0',
-                              color: '#64748b',
-                              cursor: 'not-allowed',
+                              backgroundColor: '#ffffff',
+                              color: '#0f172a',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                            Last Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            required
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              color: '#0f172a',
                               fontSize: '14px'
                             }}
                           />
@@ -1859,28 +1933,7 @@ export default function UserDashboard() {
 
                         <div>
                           <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
-                            Last Name
-                          </label>
-                          <input
-                            type="text"
-                            value={user.last_name || ''}
-                            disabled
-                            style={{
-                              width: '100%',
-                              padding: '10px 14px',
-                              borderRadius: '8px',
-                              border: '1px solid #cbd5e1',
-                              backgroundColor: '#e2e8f0',
-                              color: '#64748b',
-                              cursor: 'not-allowed',
-                              fontSize: '14px'
-                            }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
-                            Email Address
+                            Email Address (Cannot be changed)
                           </label>
                           <input
                             type="email"
@@ -1900,21 +1953,21 @@ export default function UserDashboard() {
                         </div>
 
                         <div>
-                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
                             Phone Number
                           </label>
                           <input
                             type="text"
-                            value={user.phone || 'Not Provided'}
-                            disabled
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Enter phone number"
                             style={{
                               width: '100%',
                               padding: '10px 14px',
                               borderRadius: '8px',
                               border: '1px solid #cbd5e1',
-                              backgroundColor: '#e2e8f0',
-                              color: '#64748b',
-                              cursor: 'not-allowed',
+                              backgroundColor: '#ffffff',
+                              color: '#0f172a',
                               fontSize: '14px'
                             }}
                           />
