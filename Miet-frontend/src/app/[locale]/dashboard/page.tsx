@@ -6,7 +6,7 @@ import GoogleAuth from '@/components/GoogleAuth';
 import { useNotifications } from '@/components/NotificationSystem';
 import { getApiUrl } from '@/utils/api';
 import { supabase, getSupabaseAccessToken } from '@/utils/supabase';
-import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaEdit, FaTrash, FaUser, FaHome } from 'react-icons/fa';
+import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaEdit, FaTrash, FaUser, FaHome, FaShoppingCart } from 'react-icons/fa';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import SearchPanel from '@/components/SearchPanel';
@@ -57,7 +57,7 @@ export default function UserDashboard() {
   const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile'>('search');
+  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -607,6 +607,27 @@ export default function UserDashboard() {
               >
                 <FaUser />
                 My Profile
+              </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('orders')}
+                style={{
+                  background: activeSection === 'orders' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'orders' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaShoppingCart />
+                My Orders
               </button>
             </div>
           </div>
@@ -2145,6 +2166,108 @@ export default function UserDashboard() {
                     </button>
                   </div>
                 </form>
+              )}
+            </div>
+          )}
+
+          {/* My Orders Section */}
+          {activeSection === 'orders' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '32px',
+              marginBottom: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <FaShoppingCart style={{ color: '#667eea' }} />
+                My Orders
+              </h2>
+
+              {purchases.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#666'
+                }}>
+                  <FaShoppingCart style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                  <p style={{ fontSize: '16px' }}>No orders placed yet</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {purchases.map((order: any, index: number) => (
+                    <div
+                      key={`${order.order_id}-${order.product_id}-${index}`}
+                      style={{
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        background: '#f8fafc',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderBottom: '1px solid #e2e8f0',
+                        paddingBottom: '10px',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                      }}>
+                        <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                          Order ID: #{order.order_id}
+                        </span>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          background: order.payment_status === 'paid' ? '#e2fbe8' : '#fffbeb',
+                          color: order.payment_status === 'paid' ? '#15803d' : '#b45309'
+                        }}>
+                          {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {order.thumbnail && (
+                          <img
+                            src={order.thumbnail.startsWith('http') ? order.thumbnail : `https://api.miet.life${order.thumbnail}`}
+                            alt={order.product_name}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              objectFit: 'cover',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#334155' }}>
+                            {order.product_name}
+                          </h4>
+                          <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                            Price: ₹{order.price} | Qty: {order.quantity}
+                          </p>
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>
+                          Total: ₹{Number(order.price) * Number(order.quantity)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

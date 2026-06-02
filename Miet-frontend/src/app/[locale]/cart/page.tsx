@@ -97,6 +97,38 @@ export default function CartPage() {
           ...prev,
           email: session.user.email || ''
         }));
+
+        try {
+          const token = session.access_token;
+          const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://miet.life';
+          const apiUrl = `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/api/auth/profile`;
+          
+          const response = await fetch(apiUrl, {
+            headers: { 
+              'Authorization': `Bearer ${token}` 
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              const u = data.user;
+              const addr = u.addresses && u.addresses.length > 0 ? u.addresses[0] : null;
+              setUserDetails({
+                firstName: u.first_name || '',
+                lastName: u.last_name || '',
+                email: u.email || '',
+                phone: u.phone || '',
+                address: addr ? addr.address_line1 : '',
+                city: addr ? addr.city : '',
+                state: addr ? addr.state : '',
+                zipCode: addr ? addr.zip_code : '',
+                country: addr ? addr.country : 'India'
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching profile for cart prefill:', err);
+        }
       } else {
         setIsLoggedIn(false);
       }
@@ -1000,7 +1032,7 @@ const handleCheckoutConfirm = async () => {
                       </select>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                     <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                       <button
                         type="button"
                         onClick={goBack}
@@ -1017,6 +1049,36 @@ const handleCheckoutConfirm = async () => {
                         }}
                       >
                         Back
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserDetails({
+                            firstName: '',
+                            lastName: '',
+                            email: '',
+                            phone: '',
+                            address: '',
+                            city: '',
+                            state: '',
+                            zipCode: '',
+                            country: 'India'
+                          });
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          background: '#fff5f5',
+                          color: '#ef4444',
+                          border: '1px solid #fecaca',
+                          borderRadius: '6px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Reset Form
                       </button>
 
                       <button
