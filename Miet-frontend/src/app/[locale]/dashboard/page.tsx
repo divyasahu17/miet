@@ -56,6 +56,8 @@ export default function UserDashboard() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const ordersPerPage = 5;
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
@@ -2221,98 +2223,176 @@ export default function UserDashboard() {
                       }
                     };
 
-                    return purchases.map((order: any, index: number) => (
-                      <div
-                        key={`${order.order_id}-${order.product_id}-${index}`}
-                        style={{
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '20px',
-                          background: '#f8fafc',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '12px'
-                        }}
-                      >
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          borderBottom: '1px solid #e2e8f0',
-                          paddingBottom: '10px',
-                          flexWrap: 'wrap',
-                          gap: '10px'
-                        }}>
-                          <span style={{ fontWeight: '700', color: '#1e293b' }}>
-                            Order ID: #{order.order_id}
-                          </span>
-                          
-                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            {order.order_created_at && (
-                              <span style={{ fontSize: '13px', color: '#64748b' }}>
-                                Date: {formatToIndiaTime(order.order_created_at)}
-                              </span>
-                            )}
-                            <span style={{
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              background: order.payment_status === 'paid' ? '#e2fbe8' : '#fffbeb',
-                              color: order.payment_status === 'paid' ? '#15803d' : '#b45309'
+                    const totalPages = Math.ceil(purchases.length / ordersPerPage);
+                    const startIndex = (ordersPage - 1) * ordersPerPage;
+                    const paginatedPurchases = purchases.slice(startIndex, startIndex + ordersPerPage);
+
+                    return (
+                      <>
+                        {paginatedPurchases.map((order: any, index: number) => (
+                          <div
+                            key={`${order.order_id}-${order.product_id}-${index}`}
+                            style={{
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '12px',
+                              padding: '20px',
+                              background: '#f8fafc',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              borderBottom: '1px solid #e2e8f0',
+                              paddingBottom: '10px',
+                              flexWrap: 'wrap',
+                              gap: '10px'
                             }}>
-                              {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          {order.thumbnail && (
-                            <img
-                              src={order.thumbnail.startsWith('http') ? order.thumbnail : `https://api.miet.life${order.thumbnail}`}
-                              alt={order.product_name}
-                              style={{
-                                width: '60px',
-                                height: '60px',
-                                objectFit: 'cover',
-                                borderRadius: '8px'
-                              }}
-                            />
-                          )}
-                          <div style={{ flex: 1 }}>
-                            <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#334155' }}>
-                              {order.product_name}
-                            </h4>
-                            <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
-                              Price: ₹{order.price} | Qty: {order.quantity}
-                            </p>
-                          </div>
-                          <div style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>
-                            Total: ₹{Number(order.price) * Number(order.quantity)}
-                          </div>
-                        </div>
-
-                        {/* Delivery Address Details */}
-                        {order.address && (
-                          <div style={{
-                            marginTop: '8px',
-                            padding: '12px',
-                            background: '#f1f5f9',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            color: '#475569',
-                            borderLeft: '4px solid #667eea',
-                            lineHeight: '1.5'
-                          }}>
-                            <div style={{ fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
-                              Delivery Details:
+                              <span style={{ fontWeight: '700', color: '#1e293b' }}>
+                                Order ID: #{order.order_id}
+                              </span>
+                              
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                {order.order_created_at && (
+                                  <span style={{ fontSize: '13px', color: '#64748b' }}>
+                                    Date: {formatToIndiaTime(order.order_created_at)}
+                                  </span>
+                                )}
+                                <span style={{
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  background: order.payment_status === 'paid' ? '#e2fbe8' : '#fffbeb',
+                                  color: order.payment_status === 'paid' ? '#15803d' : '#b45309'
+                                }}>
+                                  {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
+                                </span>
+                              </div>
                             </div>
-                            <strong>Recipient:</strong> {order.first_name} {order.last_name} | <strong>Phone:</strong> {order.phone || 'N/A'}<br />
-                            <strong>Address:</strong> {order.address}, {order.city}, {order.state} - {order.zip_code}, {order.country}
+
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              {order.thumbnail && (
+                                <img
+                                  src={order.thumbnail.startsWith('http') ? order.thumbnail : `https://api.miet.life${order.thumbnail}`}
+                                  alt={order.product_name}
+                                  style={{
+                                    width: '60px',
+                                    height: '60px',
+                                    objectFit: 'cover',
+                                    borderRadius: '8px'
+                                  }}
+                                />
+                              )}
+                              <div style={{ flex: 1 }}>
+                                <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#334155' }}>
+                                  {order.product_name}
+                                </h4>
+                                <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                                  Price: ₹{order.price} | Qty: {order.quantity}
+                                </p>
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>
+                                Total: ₹{Number(order.price) * Number(order.quantity)}
+                              </div>
+                            </div>
+
+                            {/* Delivery Address Details */}
+                            {order.address && (
+                              <div style={{
+                                marginTop: '8px',
+                                padding: '12px',
+                                background: '#f1f5f9',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                color: '#475569',
+                                borderLeft: '4px solid #667eea',
+                                lineHeight: '1.5'
+                              }}>
+                                <div style={{ fontWeight: '600', color: '#334155', marginBottom: '4px' }}>
+                                  Delivery Details:
+                                </div>
+                                <strong>Recipient:</strong> {order.first_name} {order.last_name} | <strong>Phone:</strong> {order.phone || 'N/A'}<br />
+                                <strong>Address:</strong> {order.address}, {order.city}, {order.state} - {order.zip_code}, {order.country}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginTop: '20px',
+                            paddingTop: '20px',
+                            borderTop: '1px solid #e2e8f0'
+                          }}>
+                            <button
+                              onClick={() => setOrdersPage(prev => Math.max(prev - 1, 1))}
+                              disabled={ordersPage === 1}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                background: 'white',
+                                color: ordersPage === 1 ? '#cbd5e1' : '#475569',
+                                cursor: ordersPage === 1 ? 'not-allowed' : 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              Previous
+                            </button>
+
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                              <button
+                                key={pageNum}
+                                onClick={() => setOrdersPage(pageNum)}
+                                style={{
+                                  width: '36px',
+                                  height: '36px',
+                                  borderRadius: '8px',
+                                  border: pageNum === ordersPage ? 'none' : '1px solid #cbd5e1',
+                                  background: pageNum === ordersPage ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white',
+                                  color: pageNum === ordersPage ? 'white' : '#475569',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '600',
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {pageNum}
+                              </button>
+                            ))}
+
+                            <button
+                              onClick={() => setOrdersPage(prev => Math.min(prev + 1, totalPages))}
+                              disabled={ordersPage === totalPages}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                background: 'white',
+                                color: ordersPage === totalPages ? '#cbd5e1' : '#475569',
+                                cursor: ordersPage === totalPages ? 'not-allowed' : 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              Next
+                            </button>
                           </div>
                         )}
-                      </div>
-                    ));
+                      </>
+                    );
                   })()}
                 </div>
               )}
