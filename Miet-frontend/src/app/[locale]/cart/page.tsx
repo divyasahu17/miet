@@ -67,6 +67,7 @@ export default function CartPage() {
     password: ''
   });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState('');
@@ -113,6 +114,7 @@ export default function CartPage() {
             if (data.success && data.user) {
               const u = data.user;
               const addr = u.addresses && u.addresses.length > 0 ? u.addresses[0] : null;
+              setSavedAddresses(u.addresses || []);
               setUserDetails({
                 firstName: u.first_name || '',
                 lastName: u.last_name || '',
@@ -926,6 +928,61 @@ const handleCheckoutConfirm = async () => {
                         />
                       </div>
                     </div>
+
+                    {/* Saved Addresses Quick Selector */}
+                    {savedAddresses.length > 0 && (
+                      <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        marginBottom: '4px'
+                      }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#475569', margin: '0 0 12px 0' }}>
+                          Select from Saved Addresses:
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {savedAddresses.map((addr, i) => (
+                            <label
+                              key={addr.id || i}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '10px',
+                                padding: '10px',
+                                background: 'white',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                color: '#334155',
+                                transition: 'all 0.2s',
+                                margin: 0
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="selectedSavedAddress"
+                                style={{ marginTop: '3px' }}
+                                onChange={() => {
+                                  setUserDetails(prev => ({
+                                    ...prev,
+                                    address: addr.address_line1 || '',
+                                    city: addr.city || '',
+                                    state: addr.state || '',
+                                    zipCode: addr.zip_code || '',
+                                    country: addr.country || 'India'
+                                  }));
+                                }}
+                              />
+                              <div>
+                                <strong>{addr.address_line1}</strong>, {addr.city}, {addr.state} - {addr.zip_code}, {addr.country}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '0.5rem' }}>
