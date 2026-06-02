@@ -9694,6 +9694,79 @@ app.post('/api/create-order', async (req, res) => {
 
     }
 
+    // Send email notifications to user and admin
+    try {
+      const itemsHtml = items.map(item => `
+        <tr>
+          <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.title || item.name}</td>
+          <td style="padding: 8px; border: 1px solid #cbd5e1;">₹${item.price}</td>
+          <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.quantity}</td>
+          <td style="padding: 8px; border: 1px solid #cbd5e1;">₹${Number(item.price) * Number(item.quantity)}</td>
+        </tr>
+      `).join('');
+
+      const emailSubject = `Order Placed Successfully - Order #${orderId}`;
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <h2 style="color: #667eea; text-align: center; margin-bottom: 24px;">MIET Order Confirmation</h2>
+          <p>Hi ${userDetails.firstName} ${userDetails.lastName},</p>
+          <p>Thank you for your order! Your order <strong>#${orderId}</strong> has been successfully placed.</p>
+          
+          <h3 style="color: #475569; margin-top: 24px;">Order Summary:</h3>
+          <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid #cbd5e1; margin-bottom: 20px;">
+            <thead>
+              <tr style="background-color: #f1f5f9;">
+                <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Product</th>
+                <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Price</th>
+                <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Qty</th>
+                <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 20px; padding: 15px; background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+            <h4 style="margin-top: 0; color: #334155;">Delivery Address:</h4>
+            <p style="margin: 0; line-height: 1.5; color: #515e70;">
+              <strong>${userDetails.firstName} ${userDetails.lastName}</strong><br/>
+              ${userDetails.address}<br/>
+              ${userDetails.city}, ${userDetails.state} - ${userDetails.zipCode}<br/>
+              ${userDetails.country}<br/>
+              Phone: ${userDetails.phone}
+            </p>
+          </div>
+          
+          <div style="margin-top: 20px; font-size: 16px; font-weight: bold; text-align: right; color: #1e293b;">
+            Grand Total: ₹${total}
+          </div>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+            © ${new Date().getFullYear()} MIET (Mind Inclusion Education Technology). All rights reserved.
+          </p>
+        </div>
+      `;
+
+      // Send to User
+      await sendEmailNotification(
+        userDetails.email,
+        emailSubject,
+        emailHtml,
+        `Your order #${orderId} has been successfully placed. Total amount: ₹${total}`
+      );
+
+      // Send to Admin
+      await sendEmailNotification(
+        'miet.life@gmail.com',
+        `[ADMIN] New Order Placed - Order #${orderId}`,
+        emailHtml,
+        `New order #${orderId} was placed by ${userDetails.email}. Total amount: ₹${total}`
+      );
+    } catch (emailErr) {
+      console.error('Error sending order emails:', emailErr);
+    }
+
     res.json({
       success: true,
       order_id: orderId,
@@ -9932,6 +10005,15 @@ app.get('/api/user/purchases', async (req, res) => {
         orders.id as order_id,
         orders.email,
         orders.payment_status,
+        orders.first_name,
+        orders.last_name,
+        orders.phone,
+        orders.address,
+        orders.city,
+        orders.state,
+        orders.zip_code,
+        orders.country,
+        orders.created_at as order_created_at,
 
         order_items.product_id,
         order_items.product_name,
