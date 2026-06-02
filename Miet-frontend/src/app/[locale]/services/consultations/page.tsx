@@ -561,7 +561,7 @@ export default function ConsultationsPage() {
           }}>
             Connect with our expert consultants for personalized mental health support and guidance
           </p>
-          <GoogleAuth />
+          {/* <GoogleAuth /> */}
         </div>
 
         {/* Consultants Grid */}
