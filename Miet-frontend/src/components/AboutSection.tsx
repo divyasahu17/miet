@@ -232,6 +232,8 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
+                  }} title={member.bio || member.description}>
+                    {member.bio || member.description}
                   </p>
                   
                   {/* Social Media Links */}
