@@ -8,9 +8,12 @@ import {
 
 interface TeamMember {
   id: number;
-  name: string;
-  designation: string;
-  bio: string;
+  name?: string;
+  title?: string;
+  designation?: string;
+  role?: string;
+  bio?: string;
+  description?: string;
   image_url: string;
   facebook?: string;
   twitter?: string;
@@ -58,9 +61,9 @@ export default function TeamTab() {
 
   const handleEdit = (member: TeamMember) => {
     setEditId(member.id);
-    setName(member.name || '');
-    setDesignation(member.designation || '');
-    setBio(member.bio || '');
+    setName(member.title || member.name || '');
+    setDesignation(member.role || member.designation || '');
+    setBio(member.description || member.bio || '');
     setImageUrlInput(member.image_url || '');
     setImagePreview(member.image_url ? (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + member.image_url : '');
     setImageFile(null);
@@ -270,7 +273,7 @@ export default function TeamTab() {
                 {member.image_url ? (
                   <img
                     src={(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + member.image_url}
-                    alt={member.name}
+                    alt={member.title || member.name || 'Team Member'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => {
                       e.currentTarget.src = '';
@@ -283,7 +286,7 @@ export default function TeamTab() {
               </div>
 
               <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: '#1e1b4b' }}>
-                {member.name}
+                {member.title || member.name}
               </h3>
               <span style={{
                 fontSize: '12px',
@@ -294,7 +297,7 @@ export default function TeamTab() {
                 borderRadius: '20px',
                 marginBottom: '12px'
               }}>
-                {member.designation || 'Team Member'}
+                {member.role || member.designation || 'Team Member'}
               </span>
 
               <p style={{
@@ -308,7 +311,7 @@ export default function TeamTab() {
                 overflow: 'hidden',
                 minHeight: '58px'
               }}>
-                {member.bio || 'No bio description provided.'}
+                {member.description || member.bio || 'No bio description provided.'}
               </p>
 
               {/* Social Media Links icons on Card */}
