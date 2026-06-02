@@ -6,7 +6,7 @@ import GoogleAuth from '@/components/GoogleAuth';
 import { useNotifications } from '@/components/NotificationSystem';
 import { getApiUrl } from '@/utils/api';
 import { supabase, getSupabaseAccessToken } from '@/utils/supabase';
-import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaEdit, FaTrash, FaUser, FaHome } from 'react-icons/fa';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import SearchPanel from '@/components/SearchPanel';
@@ -57,10 +57,24 @@ export default function UserDashboard() {
   const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search'>('search');
+  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile'>('search');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [addressLine1, setAddressLine1] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [country, setCountry] = useState('India');
+  const [currentAddressId, setCurrentAddressId] = useState<number | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
   const router = useRouter();
   const { addNotification } = useNotifications();
   const locale = useLocale();
+
+  useEffect(() => {
+    if (activeSection === 'profile') {
+      loadProfileAndAddresses();
+    }
+  }, [activeSection]);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -96,21 +110,19 @@ export default function UserDashboard() {
 
       setUser(mappedUser);
 
-      
-
       // Get Supabase access token for API calls
       const token = session.access_token;
 
       // Load user's consultations
       await loadConsultations(token);
 
-
-
-
       await loadPurchases(mappedUser.email);
 
       // Load upcoming webinars
       await loadUpcomingWebinars();
+
+      // Pre-load profile addresses
+      await loadProfileAndAddresses();
 
       // Check for pending booking redirection
       const pendingConsultantId = localStorage.getItem('pending_consultant_id');
@@ -122,6 +134,122 @@ export default function UserDashboard() {
       console.error('Error checking auth:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProfileAndAddresses = async () => {
+    try {
+      setProfileLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const token = session.access_token;
+      const response = await fetch(getApiUrl('api/auth/profile'), {
+        headers: { 
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          const userAddress = data.user.addresses && data.user.addresses.length > 0 
+            ? data.user.addresses[0] 
+            : null;
+            
+          if (userAddress) {
+            setAddressLine1(userAddress.address_line1 || '');
+            setCity(userAddress.city || '');
+            setState(userAddress.state || '');
+            setZipCode(userAddress.zip_code || '');
+            setCountry(userAddress.country || 'India');
+            setCurrentAddressId(userAddress.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading profile address:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleSaveAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addressLine1 || !city || !state || !zipCode) {
+      addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in all address fields'
+      });
+      return;
+    }
+    
+    try {
+      setSavingProfile(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        addNotification({
+          type: 'error',
+          title: 'Authentication Error',
+          message: 'Session not found. Please log in again.'
+        });
+        return;
+      }
+      
+      const token = session.access_token;
+      
+      const payload = {
+        addressLine1,
+        city,
+        state,
+        zipCode,
+        country,
+        isDefault: true
+      };
+      
+      let url = getApiUrl('api/auth/addresses');
+      let method = 'POST';
+      
+      if (currentAddressId) {
+        url = getApiUrl(`api/auth/addresses/${currentAddressId}`);
+        method = 'PUT';
+      }
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const data = await response.json();
+      if (response.ok && data.success) {
+        addNotification({
+          type: 'success',
+          title: 'Success',
+          message: 'Address saved successfully'
+        });
+        if (data.address && data.address.id) {
+          setCurrentAddressId(data.address.id);
+        }
+      } else {
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: data.message || 'Failed to save address'
+        });
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Something went wrong while saving address'
+      });
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -318,7 +446,7 @@ export default function UserDashboard() {
                   Manage your consultations and explore upcoming webinars
                 </p>
               </div>
-              <GoogleAuth />
+              {/* <GoogleAuth /> */}
             </div>
           </div>
 
@@ -400,10 +528,10 @@ export default function UserDashboard() {
               </button>
               <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
               <button
-                onClick={() => setActiveSection('search')}
+                onClick={() => setActiveSection('profile')}
                 style={{
-                  background: activeSection === 'search' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-                  color: activeSection === 'search' ? 'white' : '#666',
+                  background: activeSection === 'profile' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'profile' ? 'white' : '#666',
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   padding: '10px 20px',
@@ -416,8 +544,8 @@ export default function UserDashboard() {
                   gap: '8px'
                 }}
               >
-                <FaMapMarkerAlt />
-                Consultant Search
+                <FaUser />
+                My Profile
               </button>
             </div>
           </div>
@@ -1651,6 +1779,311 @@ export default function UserDashboard() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* My Profile Section */}
+          {activeSection === 'profile' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '32px',
+              marginBottom: '24px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '600',
+                color: '#333',
+                marginBottom: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <FaUser style={{ color: '#667eea' }} />
+                My Profile
+              </h2>
+
+              {profileLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                  Loading profile data...
+                </div>
+              ) : (
+                <form onSubmit={handleSaveAddress}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '24px',
+                    marginBottom: '32px'
+                  }}>
+                    {/* Personal Information (Read-only) */}
+                    <div style={{
+                      background: '#f8fafc',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <h3 style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: '#475569',
+                        marginBottom: '16px',
+                        borderBottom: '1px solid #e2e8f0',
+                        paddingBottom: '8px'
+                      }}>
+                        Personal Information
+                      </h3>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            value={user.first_name || ''}
+                            disabled
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#e2e8f0',
+                              color: '#64748b',
+                              cursor: 'not-allowed',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            value={user.last_name || ''}
+                            disabled
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#e2e8f0',
+                              color: '#64748b',
+                              cursor: 'not-allowed',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={user.email || ''}
+                            disabled
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#e2e8f0',
+                              color: '#64748b',
+                              cursor: 'not-allowed',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#64748b', marginBottom: '6px' }}>
+                            Phone Number
+                          </label>
+                          <input
+                            type="text"
+                            value={user.phone || 'Not Provided'}
+                            disabled
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#e2e8f0',
+                              color: '#64748b',
+                              cursor: 'not-allowed',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Address Information (Editable) */}
+                    <div style={{
+                      background: '#f8fafc',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <h3 style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: '#475569',
+                        marginBottom: '16px',
+                        borderBottom: '1px solid #e2e8f0',
+                        paddingBottom: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <FaHome style={{ color: '#667eea' }} />
+                        Address Details
+                      </h3>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                            Address Line 1 *
+                          </label>
+                          <input
+                            type="text"
+                            value={addressLine1}
+                            onChange={(e) => setAddressLine1(e.target.value)}
+                            required
+                            placeholder="Street address, P.O. box, company name"
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              color: '#0f172a',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                              City *
+                            </label>
+                            <input
+                              type="text"
+                              value={city}
+                              onChange={(e) => setCity(e.target.value)}
+                              required
+                              placeholder="City"
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                backgroundColor: '#ffffff',
+                                color: '#0f172a',
+                                fontSize: '14px'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                              State *
+                            </label>
+                            <input
+                              type="text"
+                              value={state}
+                              onChange={(e) => setState(e.target.value)}
+                              required
+                              placeholder="State"
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                backgroundColor: '#ffffff',
+                                color: '#0f172a',
+                                fontSize: '14px'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                              PIN / Zip Code *
+                            </label>
+                            <input
+                              type="text"
+                              value={zipCode}
+                              onChange={(e) => setZipCode(e.target.value)}
+                              required
+                              placeholder="PIN Code"
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                backgroundColor: '#ffffff',
+                                color: '#0f172a',
+                                fontSize: '14px'
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '6px' }}>
+                              Country *
+                            </label>
+                            <input
+                              type="text"
+                              value={country}
+                              onChange={(e) => setCountry(e.target.value)}
+                              required
+                              placeholder="Country"
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: '1px solid #cbd5e1',
+                                backgroundColor: '#ffffff',
+                                color: '#0f172a',
+                                fontSize: '14px'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+                    <button
+                      type="submit"
+                      disabled={savingProfile}
+                      style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '12px 32px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: savingProfile ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                        transition: 'all 0.3s ease',
+                        opacity: savingProfile ? 0.7 : 1
+                      }}
+                    >
+                      {savingProfile ? 'Saving...' : 'Save Profile & Address'}
+                    </button>
+                  </div>
+                </form>
               )}
             </div>
           )}
