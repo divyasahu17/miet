@@ -10851,11 +10851,14 @@ app.post('/api/webinars/:id/send-recording-link', async (req, res) => {
 
 
 app.get('/api/my-webinars', authenticateUser, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const data = await db.all(`
     SELECT w.* FROM webinars w
     JOIN webinar_registrations r ON r.webinar_id = w.id
-    WHERE r.user_id = ? AND r.payment_status = 'paid'
-  `, [req.user.id]);
+    WHERE (r.user_id = ? OR r.email = ?) AND r.payment_status = 'paid'
+  `, [req.user.id, req.user.email]);
 
   res.json(data);
 });

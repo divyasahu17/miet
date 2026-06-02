@@ -199,8 +199,9 @@ export default function WebinarsTab(props: any) {
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Price (₹)</label>
               <input
                 type="number"
-                value={webinarForm.price}
+                value={webinarForm.is_free ? 0 : webinarForm.price}
                 onChange={e => setWebinarForm((f: any) => ({ ...f, price: parseFloat(e.target.value) }))}
+                disabled={webinarForm.is_free}
                 min="0"
                 step="0.01"
                 style={{
@@ -208,7 +209,10 @@ export default function WebinarsTab(props: any) {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: '2px solid rgba(102, 126, 234, 0.2)',
-                  fontSize: '16px'
+                  fontSize: '16px',
+                  backgroundColor: webinarForm.is_free ? '#f1f5f9' : '#ffffff',
+                  color: webinarForm.is_free ? '#94a3b8' : '#333333',
+                  cursor: webinarForm.is_free ? 'not-allowed' : 'text'
                 }}
               />
             </div>
@@ -217,7 +221,11 @@ export default function WebinarsTab(props: any) {
                 type="checkbox"
                 id="is_free"
                 checked={webinarForm.is_free}
-                onChange={e => setWebinarForm((f: any) => ({ ...f, is_free: e.target.checked }))}
+                onChange={e => setWebinarForm((f: any) => ({ 
+                  ...f, 
+                  is_free: e.target.checked,
+                  price: e.target.checked ? 0 : f.price
+                }))}
                 style={{ width: 20, height: 20 }}
               />
               <label htmlFor="is_free" style={{ fontWeight: 600, color: '#333' }}>Free Webinar</label>

@@ -5,6 +5,9 @@ import { getApiUrl } from '@/utils/api';
 import { FaVideo, FaClock, FaUser, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
+import { useLocale } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/utils/supabase';
 
 interface Webinar {
   id: number;
@@ -25,10 +28,38 @@ export default function WebinarsPage() {
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'free' | 'paid'>('all');
+  const [registeredWebinarIds, setRegisteredWebinarIds] = useState<number[]>([]);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const locale = useLocale();
+  const router = useRouter();
 
   useEffect(() => {
     loadWebinars();
+    checkRegistrations();
   }, []);
+
+  const checkRegistrations = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setIsUserLoggedIn(true);
+        const response = await fetch(getApiUrl('api/my-webinars'), {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        if (response.ok) {
+          const registered = await response.json();
+          setRegisteredWebinarIds(registered.map((w: any) => w.id));
+        }
+      } else {
+        setIsUserLoggedIn(false);
+        setRegisteredWebinarIds([]);
+      }
+    } catch (err) {
+      console.error('Error checking webinar registrations:', err);
+    }
+  };
 
   const loadWebinars = async () => {
     try {
@@ -399,48 +430,78 @@ export default function WebinarsPage() {
                 </div>
 
                 {/* Action Button */}
-                {webinar.google_meet_link ? (
-                  <a
-                    href={webinar.google_meet_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {webinar.is_free || (isUserLoggedIn && registeredWebinarIds.includes(webinar.id)) ? (
+                  webinar.google_meet_link ? (
+                    <a
+                      href={webinar.google_meet_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      🎥 Join Webinar
+                    </a>
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      background: '#f3f4f6',
+                      color: '#6b7280',
+                      textAlign: 'center',
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}>
+                      Link will be available soon
+                    </div>
+                  )
+                ) : (
+                  <button
+                    onClick={() => router.push(`/${locale}/webinars/${webinar.id}/registration`)}
                     style={{
                       display: 'block',
                       width: '100%',
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       color: 'white',
-                      textDecoration: 'none',
+                      border: 'none',
                       textAlign: 'center',
                       padding: '12px 24px',
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: '600',
+                      cursor: 'pointer',
                       transition: 'all 0.3s ease'
                     }}
                     onMouseOver={(e) => {
                       e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(118, 75, 162, 0.3)';
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    🎥 Join Webinar
-                  </a>
-                ) : (
-                  <div style={{
-                    width: '100%',
-                    background: '#f3f4f6',
-                    color: '#6b7280',
-                    textAlign: 'center',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    Link will be available soon
-                  </div>
+                    💳 Pay to Join (₹{webinar.price})
+                  </button>
                 )}
               </div>
             ))}
