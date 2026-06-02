@@ -193,7 +193,7 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                 <div style={{ flexShrink: 0 }}>
                   <img
                     src={member.image_url ? (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + member.image_url : (member.image || "/team.webp")}
-                    alt={member.title}
+                    alt={member.name || member.title}
                     style={{
                       width: 120,
                       height: 120,
@@ -212,7 +212,7 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                     textTransform: 'uppercase',
                     letterSpacing: '1px'
                   }}>
-                    {member.role || 'Team Member'}
+                    {member.designation || member.role || 'Team Member'}
                   </span>
                   <h3 style={{
                     color: '#1e293b',
@@ -221,7 +221,7 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                     margin: '4px 0 10px 0',
                     fontFamily: 'inherit'
                   }}>
-                    {member.title}
+                    {member.name || member.title}
                   </h3>
                   <p style={{
                     fontSize: '1rem',
@@ -231,8 +231,8 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
-                  }} title={member.description}>
-                    {member.description}
+                  }} title={member.bio || member.description}>
+                    {member.bio || member.description}
                   </p>
 
                 </div>
