@@ -975,7 +975,6 @@ const fetchOrders = async () => {
     { key: 'consultations', label: 'Consultations', icon: <FaUserMd size={20} /> },
     { key: 'gallery', label: 'Gallery', icon: <FaImages size={20} /> },
     { key: 'cms', label: 'CMS / Pages', icon: <FaCog size={20} /> },
-    { key: 'team', label: 'Team Members', icon: <FaUserCircle size={20} /> },
     { key: 'subscriptions', label: 'Subscriptions', icon: <FaTags size={20} /> },
     { key: 'coupons', label: 'Coupons', icon: <FaTags size={20} /> },
     { key: 'profile', label: 'Update Profile', icon: <FaUserCircle size={20} /> },
@@ -4009,11 +4008,6 @@ useEffect(() => {
           {/* CMS / Page Content Management */}
           {activeMenu === 'cms' && (
   <CmsTab {...tabProps} />
-)}
-
-          {/* Team Members Management */}
-          {activeMenu === 'team' && (
-  <TeamTab {...tabProps} />
 )}
 
           {/* Admin Profile Update Section */}

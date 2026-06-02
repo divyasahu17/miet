@@ -6,6 +6,8 @@ import {
   FaShieldAlt, FaFileContract, FaGlobe, FaEye, FaImages, FaCode, FaParagraph 
 } from "react-icons/fa";
 
+import TeamTab from './TeamTab';
+
 export default function CmsTab(props: any) {
   const {
     cmsContent = [],
@@ -39,7 +41,8 @@ export default function CmsTab(props: any) {
     { key: 'marketplace', label: 'Marketplace', icon: <FaShoppingBag /> },
     { key: 'events', label: 'Events Page', icon: <FaCalendarAlt /> },
     { key: 'privacy', label: 'Privacy Policy', icon: <FaShieldAlt /> },
-    { key: 'terms', label: 'Terms & Conditions', icon: <FaFileContract /> }
+    { key: 'terms', label: 'Terms & Conditions', icon: <FaFileContract /> },
+    { key: 'team_members', label: 'Team Members', icon: <FaUsers /> }
   ];
 
   // Filter content based on active page and search term
@@ -187,224 +190,228 @@ export default function CmsTab(props: any) {
         </div>
 
         {/* Content Builder Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
-          {/* Search bar inside selected page */}
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '12px 20px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
-            border: '1px solid rgba(102, 126, 234, 0.06)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span style={{ color: '#9ca3af' }}>Search current page:</span>
-            <input 
-              type="text"
-              placeholder="Filter by section or field..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                fontSize: '14px',
-                color: '#374151'
-              }}
-            />
-          </div>
-
-          {/* Section Cards */}
-          {Object.keys(groupedSections).length === 0 ? (
-            <div style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '60px',
-              textAlign: 'center',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-              border: '1px solid rgba(102, 126, 234, 0.08)'
-            }}>
-              <FaCog size={48} style={{ color: '#d1d5db', marginBottom: '16px', animation: 'spin 4s linear infinite' }} />
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#374151' }}>No Entries Found</h3>
-              <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
-                There are no content entries matching the criteria. Click "Add CMS Entry" to add one!
-              </p>
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
+          {activePage === 'team_members' ? (
+            <TeamTab />
           ) : (
-            Object.entries(groupedSections).map(([sectionKey, fields]) => (
-              <div 
-                key={sectionKey}
-                style={{
+            <>
+              {/* Search bar inside selected page */}
+              <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '12px 20px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                border: '1px solid rgba(102, 126, 234, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <span style={{ color: '#9ca3af' }}>Search current page:</span>
+                <input 
+                  type="text"
+                  placeholder="Filter by section or field..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '14px',
+                    color: '#374151'
+                  }}
+                />
+              </div>
+
+              {/* Section Cards */}
+              {Object.keys(groupedSections).length === 0 ? (
+                <div style={{
                   background: 'white',
                   borderRadius: '16px',
+                  padding: '60px',
+                  textAlign: 'center',
                   boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                  border: '1px solid rgba(102, 126, 234, 0.08)',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Section Header */}
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%)',
-                  padding: '16px 24px',
-                  borderBottom: '1px solid rgba(102, 126, 234, 0.08)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                  border: '1px solid rgba(102, 126, 234, 0.08)'
                 }}>
-                  <h3 style={{
-                    margin: 0,
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: '#1e1b4b',
-                    textTransform: 'capitalize'
-                  }}>
-                    📂 Section: {sectionKey.replace(/[-_]/g, ' ')}
-                  </h3>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#667eea', background: 'rgba(102, 126, 234, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>
-                    {fields.length} {fields.length === 1 ? 'field' : 'fields'}
-                  </span>
+                  <FaCog size={48} style={{ color: '#d1d5db', marginBottom: '16px', animation: 'spin 4s linear infinite' }} />
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#374151' }}>No Entries Found</h3>
+                  <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                    There are no content entries matching the criteria. Click "Add CMS Entry" to add one!
+                  </p>
                 </div>
-
-                {/* Fields inside Section */}
-                <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {fields.map((field: any, index: number) => (
-                    <div 
-                      key={field.id || index}
-                      style={{
-                        paddingBottom: index < fields.length - 1 ? '20px' : '0',
-                        borderBottom: index < fields.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
-                        display: 'grid',
-                        gridTemplateColumns: '220px 1fr 100px',
-                        gap: '16px',
-                        alignItems: 'start'
-                      }}
-                    >
-                      {/* Labeled key & Type */}
-                      <div>
-                        <div style={{ fontWeight: 700, color: '#374151', fontSize: '14px', wordBreak: 'break-all' }}>
-                          {field.field_key.replace(/[-_]/g, ' ')}
-                        </div>
-                        <div style={{ color: '#9ca3af', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                          {getFieldTypeIcon(field.field_type)}
-                          <span style={{ textTransform: 'uppercase' }}>{field.field_type}</span>
-                        </div>
-                      </div>
-
-                      {/* Display Value preview */}
-                      <div style={{ fontSize: '14px', color: '#4b5563', overflow: 'hidden' }}>
-                        {field.field_type === 'image' || field.field_value?.match(/\.(jpeg|jpg|gif|png|webp)/) ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <img 
-                              src={field.field_value} 
-                              alt={field.field_key} 
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              style={{ maxHeight: '120px', maxWidth: '240px', borderRadius: '8px', border: '1px solid #e5e7eb', objectFit: 'cover' }}
-                            />
-                            <code style={{ fontSize: '11px', color: '#667eea', wordBreak: 'break-all' }}>{field.field_value}</code>
-                          </div>
-                        ) : field.field_type === 'html' ? (
-                          <div style={{ background: '#f9fafb', padding: '10px 16px', borderRadius: '8px', border: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: '12px', maxHeight: '100px', overflowY: 'auto' }}>
-                            {field.field_value}
-                          </div>
-                        ) : (
-                          <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5', maxHeight: '120px', overflowY: 'auto' }}>
-                            {field.field_value || <span style={{ fontStyle: 'italic', color: '#cbd5e1' }}>Empty</span>}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={() => {
-                            setCmsForm({
-                              page_key: field.page_key,
-                              section_key: field.section_key,
-                              field_key: field.field_key,
-                              field_value: field.field_value,
-                              field_type: field.field_type
-                            });
-                            setCmsEditId(field.id || null);
-                            setShowCmsModal(true);
-                          }}
-                          style={{
-                            background: 'rgba(102, 126, 234, 0.08)',
-                            color: '#667eea',
-                            border: 'none',
-                            borderRadius: '8px',
-                            width: '36px',
-                            height: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Edit Field"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => handleCmsDelete(field.id!)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.08)',
-                            color: '#ef4444',
-                            border: 'none',
-                            borderRadius: '8px',
-                            width: '36px',
-                            height: '36px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          title="Delete Field"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-
-                {/* Quick field add */}
-                <div style={{
-                  padding: '12px 24px',
-                  background: '#fcfcfd',
-                  borderTop: '1px solid rgba(0, 0, 0, 0.02)',
-                  display: 'flex',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    onClick={() => {
-                      setCmsForm({ page_key: activePage, section_key: sectionKey, field_key: '', field_value: '', field_type: 'text' });
-                      setCmsEditId(null);
-                      setShowCmsModal(true);
-                    }}
+              ) : (
+                Object.entries(groupedSections).map(([sectionKey, fields]) => (
+                  <div 
+                    key={sectionKey}
                     style={{
-                      background: 'transparent',
-                      color: '#667eea',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
+                      background: 'white',
+                      borderRadius: '16px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                      border: '1px solid rgba(102, 126, 234, 0.08)',
+                      overflow: 'hidden'
                     }}
                   >
-                    <FaPlus /> Add field to section
-                  </button>
-                </div>
+                    {/* Section Header */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%)',
+                      padding: '16px 24px',
+                      borderBottom: '1px solid rgba(102, 126, 234, 0.08)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        color: '#1e1b4b',
+                        textTransform: 'capitalize'
+                      }}>
+                        📂 Section: {sectionKey.replace(/[-_]/g, ' ')}
+                      </h3>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#667eea', background: 'rgba(102, 126, 234, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>
+                        {fields.length} {fields.length === 1 ? 'field' : 'fields'}
+                      </span>
+                    </div>
 
-              </div>
-            ))
+                    {/* Fields inside Section */}
+                    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {fields.map((field: any, index: number) => (
+                        <div 
+                          key={field.id || index}
+                          style={{
+                            paddingBottom: index < fields.length - 1 ? '20px' : '0',
+                            borderBottom: index < fields.length - 1 ? '1px solid rgba(0, 0, 0, 0.04)' : 'none',
+                            display: 'grid',
+                            gridTemplateColumns: '220px 1fr 100px',
+                            gap: '16px',
+                            alignItems: 'start'
+                          }}
+                        >
+                          {/* Labeled key & Type */}
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#374151', fontSize: '14px', wordBreak: 'break-all' }}>
+                              {field.field_key.replace(/[-_]/g, ' ')}
+                            </div>
+                            <div style={{ color: '#9ca3af', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                              {getFieldTypeIcon(field.field_type)}
+                              <span style={{ textTransform: 'uppercase' }}>{field.field_type}</span>
+                            </div>
+                          </div>
+
+                          {/* Display Value preview */}
+                          <div style={{ fontSize: '14px', color: '#4b5563', overflow: 'hidden' }}>
+                            {field.field_type === 'image' || field.field_value?.match(/\.(jpeg|jpg|gif|png|webp)/) ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <img 
+                                  src={field.field_value} 
+                                  alt={field.field_key} 
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                  style={{ maxHeight: '120px', maxWidth: '240px', borderRadius: '8px', border: '1px solid #e5e7eb', objectFit: 'cover' }}
+                                />
+                                <code style={{ fontSize: '11px', color: '#667eea', wordBreak: 'break-all' }}>{field.field_value}</code>
+                              </div>
+                            ) : field.field_type === 'html' ? (
+                              <div style={{ background: '#f9fafb', padding: '10px 16px', borderRadius: '8px', border: '1px solid #f3f4f6', fontFamily: 'monospace', fontSize: '12px', maxHeight: '100px', overflowY: 'auto' }}>
+                                {field.field_value}
+                              </div>
+                            ) : (
+                              <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5', maxHeight: '120px', overflowY: 'auto' }}>
+                                {field.field_value || <span style={{ fontStyle: 'italic', color: '#cbd5e1' }}>Empty</span>}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => {
+                                setCmsForm({
+                                  page_key: field.page_key,
+                                  section_key: field.section_key,
+                                  field_key: field.field_key,
+                                  field_value: field.field_value,
+                                  field_type: field.field_type
+                                });
+                                setCmsEditId(field.id || null);
+                                setShowCmsModal(true);
+                              }}
+                              style={{
+                                background: 'rgba(102, 126, 234, 0.08)',
+                                color: '#667eea',
+                                border: 'none',
+                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Edit Field"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => handleCmsDelete(field.id!)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                color: '#ef4444',
+                                border: 'none',
+                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Delete Field"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick field add */}
+                    <div style={{
+                      padding: '12px 24px',
+                      background: '#fcfcfd',
+                      borderTop: '1px solid rgba(0, 0, 0, 0.02)',
+                      display: 'flex',
+                      justifyContent: 'flex-end'
+                    }}>
+                      <button
+                        onClick={() => {
+                          setCmsForm({ page_key: activePage, section_key: sectionKey, field_key: '', field_value: '', field_type: 'text' });
+                          setCmsEditId(null);
+                          setShowCmsModal(true);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          color: '#667eea',
+                          border: 'none',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <FaPlus /> Add field to section
+                      </button>
+                    </div>
+
+                  </div>
+                ))
+              )}
+            </>
           )}
-
         </div>
 
       </div>
