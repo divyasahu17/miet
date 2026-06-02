@@ -2207,8 +2207,10 @@ export default function UserDashboard() {
                     const formatToIndiaTime = (dateStr: string) => {
                       if (!dateStr) return '';
                       try {
-                        const date = new Date(dateStr);
-                        // SQLite CURRENT_TIMESTAMP is in UTC. We convert it to local/Indian Time.
+                        // SQLite CURRENT_TIMESTAMP is stored in UTC without timezone offset info.
+                        // We format it to ISO (by appending 'Z') to force JS to parse it as UTC.
+                        const utcStr = dateStr.includes('T') ? dateStr : dateStr.replace(' ', 'T') + 'Z';
+                        const date = new Date(utcStr);
                         return date.toLocaleString('en-IN', {
                           timeZone: 'Asia/Kolkata',
                           dateStyle: 'medium',
