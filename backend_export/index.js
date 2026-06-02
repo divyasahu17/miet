@@ -10044,7 +10044,6 @@ app.get('/api/user/purchases', async (req, res) => {
         orders.id as order_id,
         orders.email,
         orders.payment_status,
-        orders.status,
         orders.first_name,
         orders.last_name,
         orders.phone,
@@ -10060,7 +10059,8 @@ app.get('/api/user/purchases', async (req, res) => {
         order_items.price,
         order_items.quantity,
 
-        products.*
+        products.*,
+        orders.status as status
 
       FROM user_orders as orders
 
