@@ -54,7 +54,7 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout, child
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         const mappedUser = mapSupabaseUserToUser(session.user);
         setUser(mappedUser);
         onLogin?.(mappedUser!);

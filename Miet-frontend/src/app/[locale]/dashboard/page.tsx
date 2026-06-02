@@ -250,6 +250,14 @@ export default function UserDashboard() {
         });
       }
 
+      // Update Supabase user metadata so other components (like TopBar) sync up immediately
+      await supabase.auth.updateUser({
+        data: {
+          full_name: `${firstName} ${lastName}`,
+          name: `${firstName} ${lastName}`
+        }
+      });
+
       // 2. Update/create address
       const payload = {
         addressLine1,
