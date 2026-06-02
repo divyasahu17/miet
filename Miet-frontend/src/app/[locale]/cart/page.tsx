@@ -114,7 +114,7 @@ export default function CartPage() {
             if (data.success && data.user) {
               const u = data.user;
               const addr = u.addresses && u.addresses.length > 0 ? u.addresses[0] : null;
-              setSavedAddresses(u.addresses || []);
+              
               setUserDetails({
                 firstName: u.first_name || '',
                 lastName: u.last_name || '',
@@ -126,6 +126,57 @@ export default function CartPage() {
                 zipCode: addr ? addr.zip_code : '',
                 country: addr ? addr.country : 'India'
               });
+
+              // Fetch past orders to get unique past delivery addresses
+              try {
+                const purchasesUrl = `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/api/user/purchases?email=${session.user.email}`;
+                const purchasesResponse = await fetch(purchasesUrl);
+                if (purchasesResponse.ok) {
+                  const purchasesData = await purchasesResponse.json();
+                  if (purchasesData.success && purchasesData.purchases) {
+                    const uniqueAddressesMap = new Map();
+                    
+                    // 1. Add profile addresses
+                    u.addresses?.forEach((a: any) => {
+                      const key = `${a.address_line1}|${a.city}|${a.state}|${a.zip_code}`.toLowerCase().trim();
+                      uniqueAddressesMap.set(key, {
+                        id: a.id,
+                        address_line1: a.address_line1,
+                        city: a.city,
+                        state: a.state,
+                        zip_code: a.zip_code,
+                        country: a.country || 'India'
+                      });
+                    });
+
+                    // 2. Add past order addresses
+                    purchasesData.purchases.forEach((p: any) => {
+                      if (p.address && p.city && p.state && p.zip_code) {
+                        const key = `${p.address}|${p.city}|${p.state}|${p.zip_code}`.toLowerCase().trim();
+                        if (!uniqueAddressesMap.has(key)) {
+                          uniqueAddressesMap.set(key, {
+                            id: `order-${p.order_id}`,
+                            address_line1: p.address,
+                            city: p.city,
+                            state: p.state,
+                            zip_code: p.zip_code,
+                            country: p.country || 'India'
+                          });
+                        }
+                      }
+                    });
+
+                    setSavedAddresses(Array.from(uniqueAddressesMap.values()));
+                  } else {
+                    setSavedAddresses(u.addresses || []);
+                  }
+                } else {
+                  setSavedAddresses(u.addresses || []);
+                }
+              } catch (purchaseErr) {
+                console.error('Error loading purchases for address extract:', purchaseErr);
+                setSavedAddresses(u.addresses || []);
+              }
             }
           }
         } catch (err) {
