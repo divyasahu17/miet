@@ -788,12 +788,13 @@ const fetchOrders = async () => {
 
     const token = localStorage.getItem("admin_jwt");
 
-    const res = await fetch(getApiUrl("api/ordersAdmin"), {
+    const res = await fetch(`${getApiUrl("api/ordersAdmin")}?t=${Date.now()}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
-      }
+      },
+      cache: 'no-store'
     });
 
     const data = await res.json();

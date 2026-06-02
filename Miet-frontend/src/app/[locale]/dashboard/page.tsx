@@ -323,7 +323,8 @@ export default function UserDashboard() {
     try {
 
       const response = await fetch(
-        `${getApiUrl('api/user/purchases')}?email=${email}`
+        `${getApiUrl('api/user/purchases')}?email=${email}&t=${Date.now()}`,
+        { cache: 'no-store' }
       );
 
       if (response.ok) {
