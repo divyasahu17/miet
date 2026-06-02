@@ -57,7 +57,7 @@ export default function UserDashboard() {
   const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [ordersPage, setOrdersPage] = useState(1);
-  const ordersPerPage = 5;
+  const ordersPerPage = 4;
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
@@ -2255,7 +2255,7 @@ export default function UserDashboard() {
                                 Order ID: #{order.order_id}
                               </span>
                               
-                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 {order.order_created_at && (
                                   <span style={{ fontSize: '13px', color: '#64748b' }}>
                                     Date: {formatToIndiaTime(order.order_created_at)}
@@ -2269,7 +2269,17 @@ export default function UserDashboard() {
                                   background: order.payment_status === 'paid' ? '#e2fbe8' : '#fffbeb',
                                   color: order.payment_status === 'paid' ? '#15803d' : '#b45309'
                                 }}>
-                                  {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
+                                  Payment: {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
+                                </span>
+                                <span style={{
+                                  padding: '4px 12px',
+                                  borderRadius: '20px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  background: order.status === 'delivered' ? '#d1fae5' : order.status === 'shipped' ? '#dbeafe' : order.status === 'processing' ? '#fef3c7' : order.status === 'cancelled' ? '#fee2e2' : '#f1f5f9',
+                                  color: order.status === 'delivered' ? '#065f46' : order.status === 'shipped' ? '#1e40af' : order.status === 'processing' ? '#92400e' : order.status === 'cancelled' ? '#991b1b' : '#475569'
+                                }}>
+                                  Delivery: {order.status ? order.status.toUpperCase() : 'PENDING'}
                                 </span>
                               </div>
                             </div>

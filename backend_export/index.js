@@ -1067,8 +1067,15 @@ async function setupDatabase() {
     } else {
       console.log('Appointments table does not have status column, skipping migration.');
     }
+
+    // Migrate user_orders table to add status column if it doesn't exist
+    const userOrdersCols = await db.all("PRAGMA table_info(user_orders)");
+    if (!userOrdersCols.some(c => c.name === 'status')) {
+      await db.exec("ALTER TABLE user_orders ADD COLUMN status TEXT DEFAULT 'pending'");
+      console.log("✅ Added status column to user_orders table");
+    }
   } catch (error) {
-    console.error('Error migrating appointments table:', error);
+    console.error('Error migrating appointments/orders table:', error);
     // Don't throw error, just log it so the main process continues
   }
 }
@@ -9858,9 +9865,15 @@ app.get('/api/ordersAdmin', async (req, res) => {
         o.last_name,
         o.email,
         o.phone,
+        o.address,
+        o.city,
+        o.state,
+        o.zip_code,
+        o.country,
         o.total,
         o.payment_method,
         o.payment_status,
+        o.status,
         o.created_at,
 
         i.product_id,
@@ -9920,6 +9933,32 @@ app.get('/api/ordersAdmin', async (req, res) => {
 
 
 
+
+// Update order status (Admin)
+app.put('/api/admin/orders/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  try {
+    await db.run(
+      `UPDATE user_orders
+       SET status = ?
+       WHERE id = ?`,
+      [status, id]
+    );
+    
+    res.json({
+      success: true,
+      message: `Order status updated to ${status}`
+    });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update order status"
+    });
+  }
+});
 
 // PAYMENT SUCCESS UPDATE
 app.post('/api/payment-success', async (req, res) => {
@@ -10005,6 +10044,7 @@ app.get('/api/user/purchases', async (req, res) => {
         orders.id as order_id,
         orders.email,
         orders.payment_status,
+        orders.status,
         orders.first_name,
         orders.last_name,
         orders.phone,
