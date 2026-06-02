@@ -15,6 +15,7 @@ import CategoriesTab from './tabs/CategoriesTab';
 import SubcategoriesTab from './tabs/SubcategoriesTab';
 import DashboardTab from './tabs/DashboardTab';
 import ProfileTab from './tabs/ProfileTab';
+import TeamTab from './tabs/TeamTab';
 
 
 import React, { useEffect, useState, useMemo,useRef } from "react";
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [ailmentsExpanded, setAilmentsExpanded] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'subscriptions' | 'coupons' | 'profile'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'team' | 'subscriptions' | 'coupons' | 'profile'>('dashboard');
   const [isClient, setIsClient] = useState(false);
 
   const categoryRef = useRef<HTMLSelectElement | null>(null);
@@ -426,6 +427,11 @@ export default function AdminDashboard() {
   // Client-side hydration fix
   useEffect(() => {
     setIsClient(true);
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      setActiveMenu(tabParam as any);
+    }
   }, []);
 
   // Handle OAuth success message
@@ -969,6 +975,7 @@ const fetchOrders = async () => {
     { key: 'consultations', label: 'Consultations', icon: <FaUserMd size={20} /> },
     { key: 'gallery', label: 'Gallery', icon: <FaImages size={20} /> },
     { key: 'cms', label: 'CMS / Pages', icon: <FaCog size={20} /> },
+    { key: 'team', label: 'Team Members', icon: <FaUserCircle size={20} /> },
     { key: 'subscriptions', label: 'Subscriptions', icon: <FaTags size={20} /> },
     { key: 'coupons', label: 'Coupons', icon: <FaTags size={20} /> },
     { key: 'profile', label: 'Update Profile', icon: <FaUserCircle size={20} /> },
@@ -4002,6 +4009,11 @@ useEffect(() => {
           {/* CMS / Page Content Management */}
           {activeMenu === 'cms' && (
   <CmsTab {...tabProps} />
+)}
+
+          {/* Team Members Management */}
+          {activeMenu === 'team' && (
+  <TeamTab {...tabProps} />
 )}
 
           {/* Admin Profile Update Section */}
