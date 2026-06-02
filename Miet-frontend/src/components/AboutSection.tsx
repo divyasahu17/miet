@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCmsContent, getCmsValue, cmsOrT } from '@/hooks/useCmsContent';
 import { getApiUrl } from '@/utils/api';
+import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
 
 const SECTION = 'AboutSection';
 
@@ -231,9 +232,31 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                     WebkitLineClamp: 3,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
-                  }} title={member.bio || member.description}>
-                    {member.bio || member.description}
                   </p>
+                  
+                  {/* Social Media Links */}
+                  <div style={{ display: 'flex', gap: '14px', marginTop: '12px' }}>
+                    {member.linkedin && (
+                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', fontSize: '18px', transition: 'transform 0.2s' }} title="LinkedIn">
+                        <FaLinkedin />
+                      </a>
+                    )}
+                    {member.instagram && (
+                      <a href={member.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', fontSize: '18px', transition: 'transform 0.2s' }} title="Instagram">
+                        <FaInstagram />
+                      </a>
+                    )}
+                    {member.facebook && (
+                      <a href={member.facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#1877f2', fontSize: '18px', transition: 'transform 0.2s' }} title="Facebook">
+                        <FaFacebook />
+                      </a>
+                    )}
+                    {member.twitter && (
+                      <a href={member.twitter} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', fontSize: '18px', transition: 'transform 0.2s' }} title="Twitter">
+                        <FaTwitter />
+                      </a>
+                    )}
+                  </div>
 
                 </div>
               </div>

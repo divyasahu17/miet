@@ -1,7 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getApiUrl } from '@/utils/api';
-import { FaUserPlus, FaEdit, FaTrash, FaUserCircle, FaSpinner, FaUpload } from 'react-icons/fa';
+import { 
+  FaUserPlus, FaEdit, FaTrash, FaUserCircle, FaSpinner, FaUpload,
+  FaFacebook, FaTwitter, FaLinkedin, FaInstagram 
+} from 'react-icons/fa';
 
 interface TeamMember {
   id: number;
@@ -9,6 +12,10 @@ interface TeamMember {
   designation: string;
   bio: string;
   image_url: string;
+  facebook?: string;
+  twitter?: string;
+  linkedin?: string;
+  instagram?: string;
 }
 
 export default function TeamTab() {
@@ -24,6 +31,10 @@ export default function TeamTab() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [imagePreview, setImagePreview] = useState('');
+  const [facebook, setFacebook] = useState('');
+  const [twitter, setTwitter] = useState('');
+  const [linkedin, setLinkedin] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -53,6 +64,10 @@ export default function TeamTab() {
     setImageUrlInput(member.image_url || '');
     setImagePreview(member.image_url ? (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + member.image_url : '');
     setImageFile(null);
+    setFacebook(member.facebook || '');
+    setTwitter(member.twitter || '');
+    setLinkedin(member.linkedin || '');
+    setInstagram(member.instagram || '');
     setShowModal(true);
   };
 
@@ -95,6 +110,10 @@ export default function TeamTab() {
       formData.append('name', name);
       formData.append('designation', designation);
       formData.append('bio', bio);
+      formData.append('facebook', facebook);
+      formData.append('twitter', twitter);
+      formData.append('linkedin', linkedin);
+      formData.append('instagram', instagram);
       
       if (imageFile) {
         formData.append('image', imageFile);
@@ -136,6 +155,10 @@ export default function TeamTab() {
     setImageFile(null);
     setImageUrlInput('');
     setImagePreview('');
+    setFacebook('');
+    setTwitter('');
+    setLinkedin('');
+    setInstagram('');
     setShowModal(true);
   };
 
@@ -288,6 +311,30 @@ export default function TeamTab() {
                 {member.bio || 'No bio description provided.'}
               </p>
 
+              {/* Social Media Links icons on Card */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', justifyContent: 'center' }}>
+                {member.linkedin && (
+                  <a href={member.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', fontSize: '18px' }} title="LinkedIn">
+                    <FaLinkedin />
+                  </a>
+                )}
+                {member.instagram && (
+                  <a href={member.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', fontSize: '18px' }} title="Instagram">
+                    <FaInstagram />
+                  </a>
+                )}
+                {member.facebook && (
+                  <a href={member.facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#1877f2', fontSize: '18px' }} title="Facebook">
+                    <FaFacebook />
+                  </a>
+                )}
+                {member.twitter && (
+                  <a href={member.twitter} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', fontSize: '18px' }} title="Twitter">
+                    <FaTwitter />
+                  </a>
+                )}
+              </div>
+
               {/* Action Buttons */}
               <div style={{
                 display: 'flex',
@@ -405,9 +452,56 @@ export default function TeamTab() {
                   placeholder="Short description of experience and specialities..."
                   value={bio}
                   onChange={e => setBio(e.target.value)}
-                  rows={4}
+                  rows={3}
                   style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px', resize: 'vertical' }}
                 />
+              </div>
+
+              {/* Social Media Links fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151', fontSize: '13px' }}>LinkedIn URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://linkedin.com/..."
+                    value={linkedin}
+                    onChange={e => setLinkedin(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151', fontSize: '13px' }}>Instagram URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://instagram.com/..."
+                    value={instagram}
+                    onChange={e => setInstagram(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151', fontSize: '13px' }}>Facebook URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://facebook.com/..."
+                    value={facebook}
+                    onChange={e => setFacebook(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151', fontSize: '13px' }}>Twitter URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://twitter.com/..."
+                    value={twitter}
+                    onChange={e => setTwitter(e.target.value)}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' }}
+                  />
+                </div>
               </div>
 
               <div>

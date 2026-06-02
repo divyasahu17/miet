@@ -7354,6 +7354,18 @@ async function ensureTeamTable() {
       if (!columnNames.includes('created_at')) {
         await db.run("ALTER TABLE team ADD COLUMN created_at DATETIME DEFAULT NULL");
       }
+      if (!columnNames.includes('facebook')) {
+        await db.run("ALTER TABLE team ADD COLUMN facebook TEXT DEFAULT NULL");
+      }
+      if (!columnNames.includes('twitter')) {
+        await db.run("ALTER TABLE team ADD COLUMN twitter TEXT DEFAULT NULL");
+      }
+      if (!columnNames.includes('linkedin')) {
+        await db.run("ALTER TABLE team ADD COLUMN linkedin TEXT DEFAULT NULL");
+      }
+      if (!columnNames.includes('instagram')) {
+        await db.run("ALTER TABLE team ADD COLUMN instagram TEXT DEFAULT NULL");
+      }
       return;
     }
 
@@ -7364,6 +7376,10 @@ async function ensureTeamTable() {
         designation TEXT,
         bio TEXT,
         image_url TEXT,
+        facebook TEXT DEFAULT NULL,
+        twitter TEXT DEFAULT NULL,
+        linkedin TEXT DEFAULT NULL,
+        instagram TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -9437,7 +9453,7 @@ const validateProgrammes = (req, res, next) => {
 // GET /api/team - Get all team members (Public)
 app.get('/api/team', async (req, res) => {
   try {
-    const team = await db.all('SELECT id, name as title, designation as role, bio as description, image_url, created_at FROM team ORDER BY created_at DESC');
+    const team = await db.all('SELECT id, name as title, designation as role, bio as description, image_url, facebook, twitter, linkedin, instagram, created_at FROM team ORDER BY created_at DESC');
     res.json({ success: true, team });
   } catch (error) {
     console.error('Error fetching team:', error);
@@ -9451,6 +9467,10 @@ app.post('/api/team', authenticateToken, requireRole('superadmin'), teamUpload.s
     const name = req.body.name || req.body.title || null;
     const designation = req.body.designation || req.body.role || null;
     const bio = req.body.bio || req.body.description || null;
+    const facebook = req.body.facebook || null;
+    const twitter = req.body.twitter || null;
+    const linkedin = req.body.linkedin || null;
+    const instagram = req.body.instagram || null;
 
     const image_url = req.file ? `/uploads/team/${req.file.filename}` : (req.body.image_url || req.body.image || null);
 
@@ -9459,8 +9479,8 @@ app.post('/api/team', authenticateToken, requireRole('superadmin'), teamUpload.s
     }
 
     const result = await db.run(
-      'INSERT INTO team (name, designation, bio, image_url) VALUES (?, ?, ?, ?)',
-      [name, designation, bio, image_url]
+      'INSERT INTO team (name, designation, bio, image_url, facebook, twitter, linkedin, instagram) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, designation, bio, image_url, facebook, twitter, linkedin, instagram]
     );
 
     res.status(201).json({
@@ -9481,6 +9501,10 @@ app.put('/api/team/:id', authenticateToken, requireRole('superadmin'), teamUploa
     const name = req.body.name || req.body.title || null;
     const designation = req.body.designation || req.body.role || null;
     const bio = req.body.bio || req.body.description || null;
+    const facebook = req.body.facebook || null;
+    const twitter = req.body.twitter || null;
+    const linkedin = req.body.linkedin || null;
+    const instagram = req.body.instagram || null;
 
     const image_url = req.file ? `/uploads/team/${req.file.filename}` : (req.body.image_url || req.body.image || null);
 
@@ -9497,8 +9521,8 @@ app.put('/api/team/:id', authenticateToken, requireRole('superadmin'), teamUploa
     const final_image_url = image_url || member.image_url;
 
     await db.run(
-      'UPDATE team SET name = ?, designation = ?, bio = ?, image_url = ? WHERE id = ?',
-      [name, designation, bio, final_image_url, id]
+      'UPDATE team SET name = ?, designation = ?, bio = ?, image_url = ?, facebook = ?, twitter = ?, linkedin = ?, instagram = ? WHERE id = ?',
+      [name, designation, bio, final_image_url, facebook, twitter, linkedin, instagram, id]
     );
 
     res.json({ success: true, message: 'Team member updated successfully' });
