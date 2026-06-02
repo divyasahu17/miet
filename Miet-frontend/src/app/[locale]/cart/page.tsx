@@ -71,6 +71,8 @@ export default function CartPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSavedAddressesList, setShowSavedAddressesList] = useState(false);
+  const [deletedAddressIds, setDeletedAddressIds] = useState<any[]>([]);
 
 
 
@@ -241,6 +243,40 @@ export default function CartPage() {
       setError('Login failed. Please try again.');
     } finally {
       setCheckoutLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      if (typeof addressId === 'string' && addressId.startsWith('order-')) {
+        setDeletedAddressIds(prev => [...prev, addressId]);
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        
+        const token = session.access_token;
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://miet.life';
+        const apiUrl = `${baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl}/api/auth/addresses/${addressId}`;
+        
+        const response = await fetch(apiUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          setDeletedAddressIds(prev => [...prev, addressId]);
+        }
+      } catch (err) {
+        console.error('Error deleting address:', err);
+      }
     }
   };
 
@@ -981,57 +1017,105 @@ const handleCheckoutConfirm = async () => {
                     </div>
 
                     {/* Saved Addresses Quick Selector */}
-                    {savedAddresses.length > 0 && (
+                    {savedAddresses.filter(addr => !deletedAddressIds.includes(addr.id)).length > 0 && (
                       <div style={{
                         background: '#f8fafc',
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px',
                         padding: '16px',
-                        marginBottom: '4px'
+                        marginBottom: '10px'
                       }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#475569', margin: '0 0 12px 0' }}>
-                          Select from Saved Addresses:
-                        </h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          {savedAddresses.map((addr, i) => (
-                            <label
-                              key={addr.id || i}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: '10px',
-                                padding: '10px',
-                                background: 'white',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '13px',
-                                color: '#334155',
-                                transition: 'all 0.2s',
-                                margin: 0
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="selectedSavedAddress"
-                                style={{ marginTop: '3px' }}
-                                onChange={() => {
-                                  setUserDetails(prev => ({
-                                    ...prev,
-                                    address: addr.address_line1 || '',
-                                    city: addr.city || '',
-                                    state: addr.state || '',
-                                    zipCode: addr.zip_code || '',
-                                    country: addr.country || 'India'
-                                  }));
-                                }}
-                              />
-                              <div>
-                                <strong>{addr.address_line1}</strong>, {addr.city}, {addr.state} - {addr.zip_code}, {addr.country}
-                              </div>
-                            </label>
-                          ))}
+                        <div 
+                          onClick={() => setShowSavedAddressesList(!showSavedAddressesList)}
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                          }}
+                        >
+                          <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#475569', margin: 0 }}>
+                            Use Saved Address ({savedAddresses.filter(addr => !deletedAddressIds.includes(addr.id)).length})
+                          </h4>
+                          <span style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: '600' }}>
+                            {showSavedAddressesList ? 'Hide ▲' : 'Show ▼'}
+                          </span>
                         </div>
+
+                        {showSavedAddressesList && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                            {savedAddresses
+                              .filter(addr => !deletedAddressIds.includes(addr.id))
+                              .map((addr, i) => (
+                                <div
+                                  key={addr.id || i}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '10px',
+                                    background: 'white',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    fontSize: '13px',
+                                    color: '#334155'
+                                  }}
+                                >
+                                  <label
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      gap: '10px',
+                                      cursor: 'pointer',
+                                      flex: 1,
+                                      margin: 0
+                                    }}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="selectedSavedAddress"
+                                      style={{ marginTop: '3px' }}
+                                      onChange={() => {
+                                        setUserDetails(prev => ({
+                                          ...prev,
+                                          address: addr.address_line1 || '',
+                                          city: addr.city || '',
+                                          state: addr.state || '',
+                                          zipCode: addr.zip_code || '',
+                                          country: addr.country || 'India'
+                                        }));
+                                      }}
+                                    />
+                                    <div>
+                                      <strong>{addr.address_line1}</strong>, {addr.city}, {addr.state} - {addr.zip_code}, {addr.country}
+                                    </div>
+                                  </label>
+                                  <button
+                                    onClick={(e) => handleDeleteAddress(addr.id, e)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ef4444',
+                                      cursor: 'pointer',
+                                      padding: '4px 8px',
+                                      fontSize: '14px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      borderRadius: '4px',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    title="Delete Address"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
