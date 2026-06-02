@@ -1653,6 +1653,66 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// PUT /api/admin/profile - Update admin profile (Admin only)
+app.put('/api/admin/profile', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'superadmin') {
+    return res.status(403).json({ success: false, message: 'Forbidden: Requires admin privileges' });
+  }
+
+  const { username, password } = req.body;
+  const currentUsername = req.user.username;
+
+  try {
+    const currentAdmin = await db.get('SELECT * FROM admin WHERE username = ?', currentUsername);
+    if (!currentAdmin) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    let finalUsername = username || currentUsername;
+    let finalPasswordHash = currentAdmin.password;
+
+    if (password && password.trim() !== '') {
+      finalPasswordHash = await bcrypt.hash(password, 10);
+    }
+
+    // Update SQLite admin table
+    await db.run(
+      `UPDATE admin 
+       SET username = ?, password = ? 
+       WHERE username = ?`,
+      [finalUsername, finalPasswordHash, currentUsername]
+    );
+
+    // Update SQLite users table
+    await db.run(
+      `UPDATE users 
+       SET username = ?, password = ? 
+       WHERE username = ?`,
+      [finalUsername, finalPasswordHash, currentUsername]
+    );
+
+    // Sign new JWT token
+    const token = jwt.sign(
+      { id: req.user.id, username: finalUsername, role: 'superadmin' },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Admin profile updated successfully',
+      token,
+      username: finalUsername
+    });
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update admin profile'
+    });
+  }
+});
+
 // --- E-commerce User Authentication API ---
 
 // POST /api/auth/register - User registration

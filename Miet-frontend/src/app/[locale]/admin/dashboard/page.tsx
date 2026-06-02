@@ -14,6 +14,7 @@ import ConsultantsTab from './tabs/ConsultantsTab';
 import CategoriesTab from './tabs/CategoriesTab';
 import SubcategoriesTab from './tabs/SubcategoriesTab';
 import DashboardTab from './tabs/DashboardTab';
+import ProfileTab from './tabs/ProfileTab';
 
 
 import React, { useEffect, useState, useMemo,useRef } from "react";
@@ -109,7 +110,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [ailmentsExpanded, setAilmentsExpanded] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'subscriptions' | 'coupons'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'subscriptions' | 'coupons' | 'profile'>('dashboard');
   const [isClient, setIsClient] = useState(false);
 
   const categoryRef = useRef<HTMLSelectElement | null>(null);
@@ -970,6 +971,7 @@ const fetchOrders = async () => {
     { key: 'cms', label: 'CMS / Pages', icon: <FaCog size={20} /> },
     { key: 'subscriptions', label: 'Subscriptions', icon: <FaTags size={20} /> },
     { key: 'coupons', label: 'Coupons', icon: <FaTags size={20} /> },
+    { key: 'profile', label: 'Update Profile', icon: <FaUserCircle size={20} /> },
 
   ];
 
@@ -4000,6 +4002,11 @@ useEffect(() => {
           {/* CMS / Page Content Management */}
           {activeMenu === 'cms' && (
   <CmsTab {...tabProps} />
+)}
+
+          {/* Admin Profile Update Section */}
+          {activeMenu === 'profile' && (
+  <ProfileTab {...tabProps} />
 )}
 
 
