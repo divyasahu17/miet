@@ -2329,6 +2329,129 @@ export default function UserDashboard() {
                                 <strong>Address:</strong> {order.address}, {order.city}, {order.state} - {order.zip_code}, {order.country}
                               </div>
                             )}
+
+                            {/* Live Delivery Status Stepper */}
+                            {order.status === 'cancelled' ? (
+                              <div style={{
+                                marginTop: '16px',
+                                padding: '12px 16px',
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                borderRadius: '8px',
+                                fontWeight: '600',
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}>
+                                🚫 This order has been cancelled
+                              </div>
+                            ) : (
+                              <div style={{
+                                marginTop: '16px',
+                                padding: '16px',
+                                background: '#ffffff',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px'
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  position: 'relative',
+                                  padding: '0 10px'
+                                }}>
+                                  {/* Progress Line Background */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '14px',
+                                    left: '20px',
+                                    right: '20px',
+                                    height: '4px',
+                                    background: '#e2e8f0',
+                                    zIndex: 1,
+                                    borderRadius: '2px'
+                                  }} />
+                                  {/* Progress Line Active */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '14px',
+                                    left: '20px',
+                                    width: `${
+                                      (() => {
+                                        const s = order.status || 'pending';
+                                        if (s === 'processing') return 33;
+                                        if (s === 'shipped') return 66;
+                                        if (s === 'delivered') return 100;
+                                        return 0; // pending/ordered
+                                      })()
+                                    }%`,
+                                    height: '4px',
+                                    background: 'linear-gradient(90deg, #4ade80 0%, #22c55e 100%)',
+                                    zIndex: 2,
+                                    borderRadius: '2px',
+                                    transition: 'width 0.4s ease'
+                                  }} />
+
+                                  {/* Stepper Dots */}
+                                  {[
+                                    { label: 'Ordered', key: 'pending' },
+                                    { label: 'Processing', key: 'processing' },
+                                    { label: 'Shipped', key: 'shipped' },
+                                    { label: 'Delivered', key: 'delivered' }
+                                  ].map((step, idx) => {
+                                    const activeIndex = (() => {
+                                      const s = order.status || 'pending';
+                                      if (s === 'processing') return 1;
+                                      if (s === 'shipped') return 2;
+                                      if (s === 'delivered') return 3;
+                                      return 0; // pending
+                                    })();
+                                    const isCompleted = idx <= activeIndex;
+                                    return (
+                                      <div key={step.key} style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        zIndex: 3,
+                                        flex: 1,
+                                        position: 'relative'
+                                      }}>
+                                        <div style={{
+                                          width: '28px',
+                                          height: '28px',
+                                          borderRadius: '50%',
+                                          background: isCompleted ? 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)' : '#ffffff',
+                                          border: isCompleted ? 'none' : '2px solid #cbd5e1',
+                                          color: isCompleted ? '#ffffff' : '#64748b',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 'bold',
+                                          fontSize: '12px',
+                                          boxShadow: isCompleted ? '0 4px 10px rgba(34, 197, 94, 0.2)' : 'none',
+                                          transition: 'all 0.4s ease'
+                                        }}>
+                                          {isCompleted ? '✓' : idx + 1}
+                                        </div>
+                                        <span style={{
+                                          marginTop: '6px',
+                                          fontSize: '11px',
+                                          fontWeight: isCompleted ? '600' : '500',
+                                          color: isCompleted ? '#16a34a' : '#64748b',
+                                          textAlign: 'center'
+                                        }}>
+                                          {step.label}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
 
