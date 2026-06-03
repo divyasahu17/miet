@@ -3,10 +3,14 @@ import React, { useState } from 'react';
 import { 
   FaEdit, FaTrash, FaPlus, FaCog, FaHome, FaInfoCircle, FaPhone, 
   FaBriefcase, FaGraduationCap, FaUsers, FaShoppingBag, FaCalendarAlt, 
-  FaShieldAlt, FaFileContract, FaGlobe, FaEye, FaImages, FaCode, FaParagraph 
+  FaShieldAlt, FaFileContract, FaGlobe, FaEye, FaImages, FaCode, FaParagraph, FaUserTie 
 } from "react-icons/fa";
 
 import TeamTab from './TeamTab';
+import ProgrammesTab from './ProgrammesTab';
+import OverviewTab from './OverviewTab';
+import FounderTab from './FounderTab';
+import VisionTab from './VisionTab';
 
 export default function CmsTab(props: any) {
   const {
@@ -33,7 +37,11 @@ export default function CmsTab(props: any) {
   // Pages definition with icons and labels
   const pagesList = [
     { key: 'home', label: 'Home Page', icon: <FaHome /> },
-    { key: 'about', label: 'About Page', icon: <FaInfoCircle /> },
+    { key: 'about_overview', label: 'About: Overview', icon: <FaInfoCircle /> },
+    { key: 'about_founder', label: 'About: Founder', icon: <FaUserTie /> },
+    { key: 'about_vision', label: 'About: Vision', icon: <FaEye /> },
+    { key: 'programmes', label: 'Programmes', icon: <FaGraduationCap /> },
+    { key: 'team_members', label: 'Team Members', icon: <FaUsers /> },
     { key: 'contact', label: 'Contact Page', icon: <FaPhone /> },
     { key: 'services', label: 'Services Page', icon: <FaBriefcase /> },
     { key: 'courses', label: 'Courses Page', icon: <FaGraduationCap /> },
@@ -41,8 +49,7 @@ export default function CmsTab(props: any) {
     { key: 'marketplace', label: 'Marketplace', icon: <FaShoppingBag /> },
     { key: 'events', label: 'Events Page', icon: <FaCalendarAlt /> },
     { key: 'privacy', label: 'Privacy Policy', icon: <FaShieldAlt /> },
-    { key: 'terms', label: 'Terms & Conditions', icon: <FaFileContract /> },
-    { key: 'team_members', label: 'Team Members', icon: <FaUsers /> }
+    { key: 'terms', label: 'Terms & Conditions', icon: <FaFileContract /> }
   ];
 
   // Filter content based on active page and search term
@@ -193,6 +200,14 @@ export default function CmsTab(props: any) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
           {activePage === 'team_members' ? (
             <TeamTab />
+          ) : activePage === 'programmes' ? (
+            <ProgrammesTab />
+          ) : activePage === 'about_overview' ? (
+            <OverviewTab />
+          ) : activePage === 'about_founder' ? (
+            <FounderTab />
+          ) : activePage === 'about_vision' ? (
+            <VisionTab />
           ) : (
             <>
               {/* Search bar inside selected page */}

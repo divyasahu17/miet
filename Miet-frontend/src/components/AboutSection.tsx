@@ -5,20 +5,17 @@ import { useCmsContent, getCmsValue, cmsOrT } from '@/hooks/useCmsContent';
 import { getApiUrl } from '@/utils/api';
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from 'react-icons/fa';
 
-const SECTION = 'AboutSection';
-
 export default function AboutSection() {
   const t = useTranslations('AboutSection');
 
-  const text = (_cmsKey: string, fallback: string) => fallback;
-const html = (_cmsKey: string, fallback: string) => fallback;
+  const { content: cmsContent } = useCmsContent('about');
+  
+  const text = (sectionKey: string, fieldKey: string, fallback: string) => cmsOrT(cmsContent, sectionKey, fieldKey, fallback);
+  const html = (sectionKey: string, fieldKey: string, fallback: string) => {
+    const v = getCmsValue(cmsContent, sectionKey, fieldKey);
+    return (v != null && v !== '') ? v : fallback;
+  };
 
-  // const { content: cmsContent } = useCmsContent('about');
-  // const text = (cmsKey: string, fallback: string) => cmsOrT(cmsContent, SECTION, cmsKey, fallback);
-  // const html = (cmsKey: string, fallback: string) => {
-    // const v = getCmsValue(cmsContent, SECTION, cmsKey);
-    // return (v != null && v !== '') ? v : fallback;
-  // };
   const [activeTab, setActiveTab] = useState(0);
   const [teamData, setTeamData] = useState<any[]>([]);
   const [programmeData, setProgrammeData] = useState<any[]>([]);
@@ -54,7 +51,7 @@ const html = (_cmsKey: string, fallback: string) => fallback;
 
   const tabs = [
     {
-      label: text('tabs_overview', t('tabs.overview')),
+      label: text('tabs', 'overview', t('tabs.overview')),
       content: (
         <div
           style={{
@@ -78,26 +75,26 @@ const html = (_cmsKey: string, fallback: string) => fallback;
               marginBottom: '1rem',
               lineHeight: '1.3'
             }}>
-              {text('overview_title', t('overview.title'))}
+              {text('overview', 'title', t('overview.title'))}
             </h3>
-            <p dangerouslySetInnerHTML={{ __html: html('overview_description1', t.raw('overview.description1')) }} />
+            <p dangerouslySetInnerHTML={{ __html: html('overview', 'description1', t.raw('overview.description1')) }} />
             <h3 style={{ color: '#5a67d8', fontWeight: 700, marginTop: 32 }}>
-              {text('overview_communityTitle', t('overview.communityTitle'))}
+              {text('overview', 'communityTitle', t('overview.communityTitle'))}
             </h3>
             <p>
-              {text('overview_communityDescription', t('overview.communityDescription'))}
+              {text('overview', 'communityDescription', t('overview.communityDescription'))}
             </p>
-            <h3 style={{ color: '#5a67d8', fontWeight: 700, marginTop: 32 }}>{text('overview_aboutTitle', t('overview.aboutTitle'))}</h3>
-            <p dangerouslySetInnerHTML={{ __html: html('overview_aboutIntro', t.raw('overview.aboutIntro')) }} />
+            <h3 style={{ color: '#5a67d8', fontWeight: 700, marginTop: 32 }}>{text('overview', 'aboutTitle', t('overview.aboutTitle'))}</h3>
+            <p dangerouslySetInnerHTML={{ __html: html('overview', 'aboutIntro', t.raw('overview.aboutIntro')) }} />
             <p>
-              {text('overview_aboutDesc1', t('overview.aboutDesc1'))}
+              {text('overview', 'aboutDesc1', t('overview.aboutDesc1'))}
             </p>
             <p>
-              {text('overview_aboutDesc2', t('overview.aboutDesc2'))}
+              {text('overview', 'aboutDesc2', t('overview.aboutDesc2'))}
             </p>
-            <p>{text('overview_joinUs', t('overview.joinUs'))}</p>
+            <p>{text('overview', 'joinUs', t('overview.joinUs'))}</p>
             <div style={{ color: '#5a67d8', fontWeight: 600, marginTop: 18 }}>
-              {text('overview_tags', t('overview.tags'))}
+              {text('overview', 'tags', t('overview.tags'))}
             </div>
           </div>
           <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
@@ -119,32 +116,32 @@ const html = (_cmsKey: string, fallback: string) => fallback;
       ),
     },
     {
-      label: text('tabs_vision', t('tabs.vision')),
+      label: text('tabs', 'vision', t('tabs.vision')),
       content: (
         <div style={{ maxWidth: 900, margin: '0 auto', color: '#22543d', fontSize: 18, lineHeight: 1.7 }}>
-          <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('vision_title', t('vision.title'))}</h3>
-          <p>{text('vision_p1', t('vision.p1'))}</p>
-          <p>{text('vision_p2', t('vision.p2'))}</p>
-          <p>{text('vision_p3', t('vision.p3'))}</p>
-          <div style={{ color: '#5a67d8', fontWeight: 600, marginTop: 18 }}>{text('vision_tags', t('vision.tags'))}</div>
+          <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('vision', 'title', t('vision.title'))}</h3>
+          <p>{text('vision', 'p1', t('vision.p1'))}</p>
+          <p>{text('vision', 'p2', t('vision.p2'))}</p>
+          <p>{text('vision', 'p3', t('vision.p3'))}</p>
+          <div style={{ color: '#5a67d8', fontWeight: 600, marginTop: 18 }}>{text('vision', 'tags', t('vision.tags'))}</div>
         </div>
       ),
     },
     {
-      label: text('tabs_founder', t('tabs.founder')),
+      label: text('tabs', 'founder', t('tabs.founder')),
       content: (
         <div style={{ maxWidth: 900, margin: '0 auto', color: '#22543d', fontSize: 18, lineHeight: 1.7, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('founder_title', t('founder.title'))}</h3>
+          <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('founder', 'title', t('founder.title'))}</h3>
           <img src="/founder.webp" alt="Dr. Jyoti Bajaj" style={{ width: 180, height: 180, borderRadius: '50%', objectFit: 'cover', border: '4px solid #5a67d8', margin: '18px 0', boxShadow: '0 2px 12px #5a67d822' }} />
-          <p dangerouslySetInnerHTML={{ __html: html('founder_p1', t.raw('founder.p1')) }} />
-          <p>{text('founder_p2', t('founder.p2'))}</p>
-          <p>{text('founder_p3', t('founder.p3'))}</p>
-          <a href="mailto:info@miet.life" style={{ color: '#5a67d8', fontWeight: 600, textDecoration: 'underline', marginTop: 12, display: 'inline-block' }}>{text('founder_writeToUs', t('founder.writeToUs'))}</a>
+          <p dangerouslySetInnerHTML={{ __html: html('founder', 'p1', t.raw('founder.p1')) }} />
+          <p>{text('founder', 'p2', t('founder.p2'))}</p>
+          <p>{text('founder', 'p3', t('founder.p3'))}</p>
+          <a href="mailto:info@miet.life" style={{ color: '#5a67d8', fontWeight: 600, textDecoration: 'underline', marginTop: 12, display: 'inline-block' }}>{text('founder', 'writeToUs', t('founder.writeToUs'))}</a>
         </div>
       ),
     },
     {
-      label: text('tabs_team', t('tabs.team')),
+      label: text('tabs', 'team', t('tabs.team')),
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
           <h2 style={{
@@ -201,98 +198,51 @@ const html = (_cmsKey: string, fallback: string) => fallback;
                       borderRadius: '50%',
                       objectFit: 'cover',
                       border: '4px solid #fff',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
                     }}
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <span style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    color: '#667eea',
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px'
-                  }}>
-                    {member.designation || member.role || 'Team Member'}
-                  </span>
-                  <h3 style={{
-                    color: '#1e293b',
-                    fontWeight: 700,
-                    fontSize: '1.4rem',
-                    margin: '4px 0 10px 0',
-                    fontFamily: 'inherit'
-                  }}>
-                    {member.name || member.title}
-                  </h3>
-                  <p style={{
-                    fontSize: '1rem',
-                    lineHeight: '1.6',
-                    color: '#475569',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }} title={member.bio || member.description}>
+                <div>
+                  <h3 style={{ color: '#1e293b', fontWeight: 700, fontSize: '1.4rem', margin: '0 0 4px 0' }}>{member.name || member.title}</h3>
+                  <div style={{ color: '#667eea', fontWeight: 600, fontSize: '0.95rem', marginBottom: 12 }}>{member.designation || member.role}</div>
+                  <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {member.bio || member.description}
                   </p>
                   
                   {/* Social Media Links */}
-                  <div style={{ display: 'flex', gap: '14px', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                     {member.linkedin && (
-                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', fontSize: '18px', transition: 'transform 0.2s' }} title="LinkedIn">
+                      <a href={member.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', fontSize: '1.2rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                         <FaLinkedin />
                       </a>
                     )}
                     {member.instagram && (
-                      <a href={member.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', fontSize: '18px', transition: 'transform 0.2s' }} title="Instagram">
+                      <a href={member.instagram} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', fontSize: '1.2rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                         <FaInstagram />
                       </a>
                     )}
                     {member.facebook && (
-                      <a href={member.facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#1877f2', fontSize: '18px', transition: 'transform 0.2s' }} title="Facebook">
+                      <a href={member.facebook} target="_blank" rel="noopener noreferrer" style={{ color: '#1877f2', fontSize: '1.2rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                         <FaFacebook />
                       </a>
                     )}
                     {member.twitter && (
-                      <a href={member.twitter} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', fontSize: '18px', transition: 'transform 0.2s' }} title="Twitter">
+                      <a href={member.twitter} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', fontSize: '1.2rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
                         <FaTwitter />
                       </a>
                     )}
                   </div>
-
                 </div>
               </div>
             )) : (
-              <div
-                style={{
-                  maxWidth: 'min(1200px, 96vw)',
-                  margin: '0 auto',
-                  color: '#22543d',
-                  fontSize: 18,
-                  lineHeight: 1.7,
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: 40,
-                  flexWrap: 'wrap',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <img src="/team.webp" alt="MieT Team" style={{ width: '100%', maxWidth: 480, borderRadius: 16, margin: '18px 0', boxShadow: '0 2px 12px #5a67d822' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('team_title', t('team.title'))}</h3>
-                  <p>{text('team_description', t('team.description'))}</p>
-                  <a href="https://miet.life/meet-our-team" target="_blank" rel="noopener noreferrer" style={{ color: '#5a67d8', fontWeight: 600, textDecoration: 'underline', marginTop: 12, display: 'inline-block' }}>{text('team_meetTeam', t('team.meetTeam'))}</a>
-                </div>
-              </div>
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#64748b' }}>No team members found.</div>
             )}
           </div>
         </div>
       ),
     },
     {
-      label: text('tabs_programmes', t('tabs.programmes')),
+      label: text('tabs', 'programmes', t('tabs.programmes')),
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 60 }}>
           {programmeData.length > 0 ? programmeData.map((prog: any, index: number) => (
