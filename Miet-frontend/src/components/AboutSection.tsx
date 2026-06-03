@@ -16,6 +16,12 @@ export default function AboutSection() {
     return (v != null && v !== '') ? v : fallback;
   };
 
+  const getMediaUrl = (url: string | undefined | null) => {
+    if (!url) return null;
+    if (url.startsWith('/')) return (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + url;
+    return url;
+  };
+
   const [activeTab, setActiveTab] = useState(0);
   const [teamData, setTeamData] = useState<any[]>([]);
   const [programmeData, setProgrammeData] = useState<any[]>([]);
@@ -99,18 +105,37 @@ export default function AboutSection() {
           </div>
           <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
             <img
-              src="/intro.webp"
+              src={getMediaUrl(getCmsValue(cmsContent, 'overview', 'image')) || "/intro.webp"}
               alt="MieT Hero"
               style={{ width: '100%', maxWidth: 420, borderRadius: 16, margin: '0 auto', display: 'block', boxShadow: '0 4px 24px #5a67d822' }}
             />
-            <iframe
-              width="100%"
-              height="260"
-              src="https://www.youtube.com/embed/hQFG_yXbmIM"
-              title="MieT Introduction"
-              style={{ borderRadius: 12, boxShadow: '0 2px 12px #5a67d822', minWidth: 220 }}
-              allowFullScreen
-            ></iframe>
+            {getCmsValue(cmsContent, 'overview', 'youtubeUrl') ? (
+              <iframe
+                width="100%"
+                height="260"
+                src={getCmsValue(cmsContent, 'overview', 'youtubeUrl')}
+                title="MieT Introduction"
+                style={{ borderRadius: 12, boxShadow: '0 2px 12px #5a67d822', minWidth: 220 }}
+                allowFullScreen
+              ></iframe>
+            ) : getCmsValue(cmsContent, 'overview', 'video') ? (
+              <video 
+                width="100%" 
+                height="260" 
+                controls 
+                style={{ borderRadius: 12, boxShadow: '0 2px 12px #5a67d822', minWidth: 220, backgroundColor: '#000' }}
+                src={getMediaUrl(getCmsValue(cmsContent, 'overview', 'video'))!}
+              />
+            ) : (
+              <iframe
+                width="100%"
+                height="260"
+                src="https://www.youtube.com/embed/hQFG_yXbmIM"
+                title="MieT Introduction"
+                style={{ borderRadius: 12, boxShadow: '0 2px 12px #5a67d822', minWidth: 220 }}
+                allowFullScreen
+              ></iframe>
+            )}
           </div>
         </div>
       ),
@@ -120,6 +145,15 @@ export default function AboutSection() {
       content: (
         <div style={{ maxWidth: 900, margin: '0 auto', color: '#22543d', fontSize: 18, lineHeight: 1.7 }}>
           <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('vision', 'title', t('vision.title'))}</h3>
+          
+          {getCmsValue(cmsContent, 'vision', 'image') && (
+            <img 
+              src={getMediaUrl(getCmsValue(cmsContent, 'vision', 'image'))!} 
+              alt="Our Vision" 
+              style={{ width: '100%', maxWidth: 600, borderRadius: 16, margin: '24px 0', display: 'block', boxShadow: '0 4px 24px #5a67d822' }} 
+            />
+          )}
+
           <p>{text('vision', 'p1', t('vision.p1'))}</p>
           <p>{text('vision', 'p2', t('vision.p2'))}</p>
           <p>{text('vision', 'p3', t('vision.p3'))}</p>
@@ -132,10 +166,38 @@ export default function AboutSection() {
       content: (
         <div style={{ maxWidth: 900, margin: '0 auto', color: '#22543d', fontSize: 18, lineHeight: 1.7, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <h3 style={{ color: '#5a67d8', fontWeight: 700 }}>{text('founder', 'title', t('founder.title'))}</h3>
-          <img src="/founder.webp" alt="Dr. Jyoti Bajaj" style={{ width: 180, height: 180, borderRadius: '50%', objectFit: 'cover', border: '4px solid #5a67d8', margin: '18px 0', boxShadow: '0 2px 12px #5a67d822' }} />
+          <img 
+            src={getMediaUrl(getCmsValue(cmsContent, 'founder', 'image')) || "/founder.webp"} 
+            alt="Founder" 
+            style={{ width: 180, height: 180, borderRadius: '50%', objectFit: 'cover', border: '4px solid #5a67d8', margin: '18px 0', boxShadow: '0 2px 12px #5a67d822' }} 
+          />
           <p dangerouslySetInnerHTML={{ __html: html('founder', 'p1', t.raw('founder.p1')) }} />
           <p>{text('founder', 'p2', t('founder.p2'))}</p>
           <p>{text('founder', 'p3', t('founder.p3'))}</p>
+          
+          <div style={{ display: 'flex', gap: '16px', marginTop: '16px', marginBottom: '8px' }}>
+            {getCmsValue(cmsContent, 'founder', 'linkedin') && (
+              <a href={getCmsValue(cmsContent, 'founder', 'linkedin')} target="_blank" rel="noopener noreferrer" style={{ color: '#0077b5', fontSize: '1.5rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                <FaLinkedin />
+              </a>
+            )}
+            {getCmsValue(cmsContent, 'founder', 'instagram') && (
+              <a href={getCmsValue(cmsContent, 'founder', 'instagram')} target="_blank" rel="noopener noreferrer" style={{ color: '#e1306c', fontSize: '1.5rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                <FaInstagram />
+              </a>
+            )}
+            {getCmsValue(cmsContent, 'founder', 'facebook') && (
+              <a href={getCmsValue(cmsContent, 'founder', 'facebook')} target="_blank" rel="noopener noreferrer" style={{ color: '#1877f2', fontSize: '1.5rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                <FaFacebook />
+              </a>
+            )}
+            {getCmsValue(cmsContent, 'founder', 'twitter') && (
+              <a href={getCmsValue(cmsContent, 'founder', 'twitter')} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', fontSize: '1.5rem', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+                <FaTwitter />
+              </a>
+            )}
+          </div>
+
           <a href="mailto:info@miet.life" style={{ color: '#5a67d8', fontWeight: 600, textDecoration: 'underline', marginTop: 12, display: 'inline-block' }}>{text('founder', 'writeToUs', t('founder.writeToUs'))}</a>
         </div>
       ),

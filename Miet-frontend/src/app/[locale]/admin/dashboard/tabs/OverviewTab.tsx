@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getApiUrl } from '@/utils/api';
-import { FaSave, FaSpinner, FaInfoCircle } from 'react-icons/fa';
+import { FaSave, FaSpinner, FaInfoCircle, FaUpload } from 'react-icons/fa';
 
 export default function OverviewTab() {
   const [loading, setLoading] = useState(true);
@@ -17,8 +17,14 @@ export default function OverviewTab() {
     aboutDesc1: '',
     aboutDesc2: '',
     joinUs: '',
-    tags: ''
+    tags: '',
+    youtubeUrl: '',
+    image: '',
+    video: ''
   });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchCmsContent();
@@ -35,7 +41,6 @@ export default function OverviewTab() {
         const data = await res.json();
         const raw = data.raw || [];
         
-        // Find fields with section_key = 'overview'
         const overviewFields = raw.filter((item: any) => item.section_key === 'overview');
         
         const newFormData = { ...formData };
@@ -54,13 +59,35 @@ export default function OverviewTab() {
     }
   };
 
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('admin_jwt');
+    const res = await fetch(getApiUrl('api/upload'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) throw new Error('File upload failed');
+    const data = await res.json();
+    return data.url;
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       const token = localStorage.getItem("admin_jwt");
+      let currentFormData = { ...formData };
+
+      if (imageFile) {
+        currentFormData.image = await uploadFile(imageFile);
+      }
+      if (videoFile) {
+        currentFormData.video = await uploadFile(videoFile);
+      }
       
-      const promises = Object.entries(formData).map(([key, value]) => {
+      const promises = Object.entries(currentFormData).map(([key, value]) => {
         return fetch(getApiUrl('api/cms'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -75,6 +102,7 @@ export default function OverviewTab() {
       });
 
       await Promise.all(promises);
+      setFormData(currentFormData);
       alert('Overview saved successfully!');
     } catch (error) {
       console.error('Error saving overview:', error);
@@ -125,6 +153,42 @@ export default function OverviewTab() {
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#374151' }}>Overview Description 1 (HTML)</label>
             <textarea name="description1" value={formData.description1} onChange={handleChange} rows={4} style={textareaStyle} />
           </div>
+
+          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ margin: 0, color: '#1e293b', fontSize: '16px' }}>Media Assets</h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#374151', fontSize: '14px' }}>Side Image (Overrides default)</label>
+                {(formData.image || imageFile) && (
+                  <div style={{ marginBottom: 8, fontSize: '12px', color: '#667eea' }}>Image selected/uploaded.</div>
+                )}
+                <div style={uploadBoxStyle}>
+                  <FaUpload style={{ color: '#667eea' }} />
+                  <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>Choose Image</span>
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files && setImageFile(e.target.files[0])} style={fileInputStyle} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#374151', fontSize: '14px' }}>Side Video (Overrides YouTube)</label>
+                {(formData.video || videoFile) && (
+                  <div style={{ marginBottom: 8, fontSize: '12px', color: '#667eea' }}>Video selected/uploaded.</div>
+                )}
+                <div style={uploadBoxStyle}>
+                  <FaUpload style={{ color: '#667eea' }} />
+                  <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 600 }}>Choose Video</span>
+                  <input type="file" accept="video/*" onChange={(e) => e.target.files && setVideoFile(e.target.files[0])} style={fileInputStyle} />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#374151' }}>YouTube URL (Optional Embedded Video)</label>
+              <input name="youtubeUrl" placeholder="https://www.youtube.com/embed/..." value={formData.youtubeUrl} onChange={handleChange} style={inputStyle} />
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#374151' }}>Community Title</label>
@@ -180,3 +244,5 @@ export default function OverviewTab() {
 
 const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px' };
 const textareaStyle = { ...inputStyle, resize: 'vertical' as any, fontFamily: 'monospace' };
+const uploadBoxStyle = { display: 'flex', alignItems: 'center', gap: '12px', background: '#f9fafb', border: '2px dashed rgba(102, 126, 234, 0.2)', borderRadius: '10px', padding: '12px', position: 'relative' as any };
+const fileInputStyle = { position: 'absolute' as any, top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' };
