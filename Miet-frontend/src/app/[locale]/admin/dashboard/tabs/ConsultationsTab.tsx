@@ -5,7 +5,7 @@ import { FaThLarge, FaList, FaTags, FaUserCircle, FaSignOutAlt, FaChevronLeft, F
 import Select from "react-select";
 
 export default function ConsultationsTab(props: any) {
-  const { DataTable, consultations, consultants, showConsultationModal, setShowConsultationModal, consultationForm, setConsultationForm, consultationEditId, setConsultationEditId, handleConsultationSubmit, handleConsultationEdit, handleConsultationDelete, googleOAuthSetup, handleGoogleOAuthSetup } = props;
+  const { DataTable, consultations, consultants, showConsultationModal, setShowConsultationModal, consultationForm, setConsultationForm, consultationEditId, setConsultationEditId, handleConsultationSubmit, handleConsultationEdit, handleConsultationDelete, googleOAuthSetup, handleGoogleOAuthSetup, handleGenerateMeetLink } = props;
 
   return (
     <>
@@ -163,7 +163,7 @@ export default function ConsultationsTab(props: any) {
                     )
                   },
                   {
-                    key: 'google_meet_link', label: 'Meet Link', render: (value: string) => value ? (
+                    key: 'google_meet_link', label: 'Meet Link', render: (value: string, row: any) => value ? (
                       <a href={value} target="_blank" rel="noopener noreferrer" style={{
                         color: '#667eea',
                         textDecoration: 'none',
@@ -181,7 +181,27 @@ export default function ConsultationsTab(props: any) {
                       }}>
                         🎥 Join Meeting
                       </a>
-                    ) : 'Not available'
+                    ) : (
+                      <button
+                        onClick={() => handleGenerateMeetLink(row.id)}
+                        style={{
+                          background: 'linear-gradient(135deg, #4285f4 0%, #34a853 100%)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        🎥 Generate Link
+                      </button>
+                    )
                   },
                   {
                     key: 'google_calendar_event_id', label: 'Calendar Event', render: (value: string, row: any) => {

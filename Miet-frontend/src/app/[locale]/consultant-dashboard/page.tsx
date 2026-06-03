@@ -89,7 +89,8 @@ export default function ConsultantDashboard() {
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'webinars' | 'availability' | 'profile' | 'subscription' | 'marketplace'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'webinars' | 'availability' | 'profile' | 'subscription' | 'marketplace' | 'orders'>('overview');
+  const [orders, setOrders] = useState<any[]>([]);
   const [showAddAvailability, setShowAddAvailability] = useState(false);
   const [googleOAuthSetup, setGoogleOAuthSetup] = useState(false);
   const [newAvailability, setNewAvailability] = useState({
@@ -192,6 +193,42 @@ export default function ConsultantDashboard() {
     }
   };
 
+  const loadOrders = async (token: string, consultantId: number) => {
+    try {
+      const res = await fetch(getApiUrl(`api/consultants/${consultantId}/orders`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.orders || []);
+      }
+    } catch (err) {
+      console.error('Failed to load orders', err);
+    }
+  };
+
+  const handleUpdateDeliveryStatus = async (orderId: number, itemId: number, status: string) => {
+    try {
+      const token = localStorage.getItem('consultant_jwt');
+      const res = await fetch(getApiUrl(`api/orders/${orderId}/items/${itemId}/status`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ delivery_status: status })
+      });
+      if (res.ok) {
+        alert('Delivery status updated successfully');
+        if (consultant) loadOrders(token as string, consultant.id);
+      } else {
+        alert('Failed to update status');
+      }
+    } catch (err) {
+      alert('Error updating status');
+    }
+  };
+
   const loadPlans = async (token: string) => {
     try {
       const response = await fetch(`${getApiUrl('api/admin/subscription-plans')}`);
@@ -247,10 +284,12 @@ export default function ConsultantDashboard() {
         console.log(data);
 
         setConsultant(data);
+        return data;
       }
     } catch (error) {
 
     }
+    return null;
   };
 
   const loadAppointments = async (token: string) => {
@@ -897,6 +936,7 @@ const handleProfileUpdate = async () => {
                 { id: 'availability', label: 'Availability', icon: FaClock },
                 { id: 'subscription', label: consultant?.is_pro ? '⭐ Pro' : 'Subscription', icon: FaCog },
                 { id: 'marketplace', label: 'Marketplace', icon: FaStore },
+                { id: 'orders', label: 'Product Orders', icon: FaBoxOpen },
                 { id: 'profile', label: 'Profile', icon: FaUserMd }
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -1857,47 +1897,6 @@ const handleProfileUpdate = async () => {
                             ))}
                           </ul>
 
-
-
-                            
-
-
-
-
-
-
-                          {/* <button
-                            onClick={async () => {
-                              try {
-                                const token = localStorage.getItem('consultant_jwt');
-                                const response = await fetch(getApiUrl('api/consultants/subscribe'), {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                  body: JSON.stringify({ plan: plan.key, billing_cycle: 'monthly' })
-                                });
-                                if (response.ok) {
-                                  alert(`Successfully subscribed to ${plan.name} plan!`);
-                                  window.location.reload();
-                                } else {
-                                  const data = await response.json();
-                                  alert(data.error || 'Subscription failed');
-                                }
-                              } catch (err) {
-                                alert('Error subscribing. Please try again.');
-                              }
-                            }}
-                            style={{
-                              width: '100%',
-                              background: plan.key === 'standard' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'white',
-                              color: plan.key === 'standard' ? 'white' : '#667eea',
-                              border: plan.key === 'standard' ? 'none' : '2px solid #667eea',
-                              borderRadius: '12px', padding: '14px 0', fontWeight: '700', fontSize: '16px', cursor: 'pointer',
-                              transition: 'all 0.3s ease'
-                            }}
-                          >
-                            Subscribe
-                          </button> */}
-
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <button
                               onClick={async () => {
@@ -2085,15 +2084,6 @@ const handleProfileUpdate = async () => {
                               Subscribe Yearly
                             </button>
                           </div>
-
-
-
-
-
-
-
-
-
                         </div>
                       ))}
                     </div>
@@ -2101,17 +2091,6 @@ const handleProfileUpdate = async () => {
                 )}
               </div>
             )}
-
-
-
-
-
-            
-
-
-
-
-
 
             {activeTab === 'marketplace' && (
               <div>
@@ -2247,14 +2226,12 @@ const handleProfileUpdate = async () => {
                     {/* Render matching products */}
                     <div style={{ display: 'grid', gap: '16px' }}>
                       {products.filter((p: any) => {
-                        // Because the backend may not have consultant_id, we fall back to author matching the consultant's name
                         const isOwner = (p.consultant_id && p.consultant_id === consultant?.id) || 
                                         (!p.consultant_id && consultant?.name && (
                                            (p.author && p.author.toLowerCase() === consultant.name.toLowerCase()) || 
                                            (p.instructor_name && p.instructor_name.toLowerCase() === consultant.name.toLowerCase())
                                         ));
                         
-                        // We also need to filter by product type!
                         const typeMap: Record<string, string[]> = {
                           courses: ['Course', 'course'],
                           ebooks: ['E-book', 'e-book'],
@@ -2298,14 +2275,13 @@ const handleProfileUpdate = async () => {
                               <div>
                                 <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '16px' }}>{product.title || product.name}</h4>
                                 <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '13px' }}>
-                                  Status: <span style={{ color: product.status === 'active' ? '#10b981' : '#f59e0b', fontWeight: '500' }}>{product.status || 'pending'}</span>
+                                  Status: <span style={{ color: product.approval_status === 'approved' ? (product.status === 'active' ? '#10b981' : '#f59e0b') : '#ef4444', fontWeight: '500' }}>{product.approval_status === 'approved' ? (product.status || 'active') : (product.approval_status || 'pending')}</span>
                                 </p>
                               </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button
                                 onClick={() => {
-                                  // Edit
                                   setProductForm({ ...product, type: activeCategory === 'courses' ? 'Course' : activeCategory === 'ebooks' ? 'E-book' : activeCategory === 'apps' ? 'App' : 'Gadget' });
                                   setShowProductModal(true);
                                 }}
@@ -2342,6 +2318,97 @@ const handleProfileUpdate = async () => {
                         ))
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'orders' && (
+              <div>
+                <h2 style={titleStyle}>Product Orders</h2>
+                {orders.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
+                    <p>No orders received yet.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '20px' }}>
+                    {orders.map((order: any) => (
+                      <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '16px' }}>
+                          <div>
+                            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#111827' }}>Order #{order.id}</h3>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                              Placed on {new Date(order.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ 
+                              background: order.payment_status === 'paid' ? '#dcfce7' : '#fee2e2',
+                              color: order.payment_status === 'paid' ? '#166534' : '#991b1b',
+                              padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'
+                            }}>
+                              {order.payment_status?.toUpperCase() || 'PENDING'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                          <div>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>Customer Details</h4>
+                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Name:</strong> {order.customer_name}</p>
+                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Email:</strong> {order.email}</p>
+                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Phone:</strong> {order.phone}</p>
+                          </div>
+                          <div>
+                            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>Shipping Address</h4>
+                            <p style={{ margin: '0', fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>{order.address}</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#374151' }}>Ordered Products</h4>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr style={{ background: '#f3f4f6', textAlign: 'left', fontSize: '13px', color: '#4b5563' }}>
+                                <th style={{ padding: '8px 12px', borderRadius: '6px 0 0 6px' }}>Item</th>
+                                <th style={{ padding: '8px 12px' }}>Qty</th>
+                                <th style={{ padding: '8px 12px' }}>Price</th>
+                                <th style={{ padding: '8px 12px', borderRadius: '0 6px 6px 0' }}>Delivery Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {order.items.map((item: any) => (
+                                <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '12px', fontSize: '14px', color: '#1f2937', fontWeight: '500' }}>{item.product_name}</td>
+                                  <td style={{ padding: '12px', fontSize: '14px', color: '#4b5563' }}>{item.quantity}</td>
+                                  <td style={{ padding: '12px', fontSize: '14px', color: '#4b5563' }}>₹{item.price}</td>
+                                  <td style={{ padding: '12px' }}>
+                                    <select
+                                      value={item.delivery_status || 'pending'}
+                                      onChange={(e) => handleUpdateDeliveryStatus(order.id, item.id, e.target.value)}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #d1d5db',
+                                        fontSize: '13px',
+                                        outline: 'none',
+                                        background: item.delivery_status === 'delivered' ? '#dcfce7' : 
+                                                  item.delivery_status === 'shipped' ? '#dbeafe' : '#fef3c7'
+                                      }}
+                                    >
+                                      <option value="pending">Pending</option>
+                                      <option value="processing">Processing</option>
+                                      <option value="shipped">Shipped</option>
+                                      <option value="delivered">Delivered</option>
+                                    </select>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -2490,207 +2557,6 @@ const handleProfileUpdate = async () => {
               </div>
             )}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{/* 
-
-
-            {activeTab === 'profile' && (
-              <div>
-                <h2 style={{
-                  fontSize: '24px',
-                  fontWeight: '600',
-                  color: '#333',
-                  marginBottom: '24px'
-                }}>
-                  My Profile
-                </h2>
-
-                <div style={{
-                  display: 'grid',
-                  gap: '24px',
-                  maxWidth: '600px'
-                }}>
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={consultant.name}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={consultant.email}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Phone
-                    </label>
-                    <input
-                      type="tel"
-                      value={consultant.phone || ''}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Speciality
-                    </label>
-                    <input
-                      type="text"
-                      value={consultant.speciality || ''}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      value={consultant.city || ''}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Description
-                    </label>
-                    <textarea
-                      value={consultant.description || ''}
-                      readOnly
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: '1px solid #d1d5db',
-                        fontSize: '16px',
-                        background: '#f9fafb',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-
- */}
-
-
-
-
-
-
-
-
           </div>
         </div>
       </div>
@@ -2702,7 +2568,11 @@ const handleProfileUpdate = async () => {
           onClose={async () => {
             setShowProductModal(false);
             const token = localStorage.getItem('consultant_jwt');
-            if (token) await loadProducts(token);
+            if (token) {
+              await loadWebinars(token);
+              await loadProducts(token);
+              if (consultant) await loadOrders(token, consultant.id);
+            }
           }}
         />
       )}

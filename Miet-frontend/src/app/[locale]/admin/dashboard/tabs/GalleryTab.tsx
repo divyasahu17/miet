@@ -1,8 +1,20 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
-import { FaThLarge, FaList, FaTags, FaUserCircle, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaUserMd, FaChevronDown, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaImages, FaCog } from "react-icons/fa";
+import { FaThLarge, FaList, FaTags, FaUserCircle, FaSignOutAlt, FaChevronLeft, FaChevronRight, FaUserMd, FaChevronDown, FaSearch, FaEdit, FaTrash, FaPlus, FaEye, FaImages, FaCog, FaTimes } from "react-icons/fa";
 import Select from "react-select";
+
+export const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return '';
+  let videoId = '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    videoId = match[2];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  return url;
+};
 
 export default function GalleryTab(props: any) {
   const {
@@ -23,6 +35,8 @@ export default function GalleryTab(props: any) {
     handleGalleryUpload,
     galleryTitle,
     galleryDescription,
+    galleryVideoEmbedUrl,
+    setGalleryVideoEmbedUrl,
     galleryFiles = [],
     galleryPreview = [],
     loading,
@@ -110,7 +124,14 @@ export default function GalleryTab(props: any) {
                     transition: 'all 0.3s ease'
                   }}>
                     <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#000' }}>
-                      {img.video_path ? (
+                      {img.video_embed_url ? (
+                        <iframe
+                          src={getYouTubeEmbedUrl(img.video_embed_url)}
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : img.video_path ? (
                         <video
                           src={getImageUrl(img.video_path)}
                           controls
@@ -208,6 +229,16 @@ export default function GalleryTab(props: any) {
                             )}
                           </div>
 
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                            <label style={{ fontSize: '11px', fontWeight: 600, color: '#4b5563' }}>Update Video Embed Link (optional)</label>
+                            <input
+                              value={galleryEditForm.video_embed_url || ''}
+                              onChange={(e: any) => setGalleryEditForm((f: any) => ({ ...f, video_embed_url: e.target.value }))}
+                              placeholder="e.g. YouTube video link"
+                              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                            />
+                          </div>
+
                           <select
                             value={galleryEditForm.status || 'active'}
                             onChange={(e: any) => setGalleryEditForm((f: any) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
@@ -248,7 +279,7 @@ export default function GalleryTab(props: any) {
                             <button
                               onClick={() => {
                                 setGalleryEditId(img.id!);
-                                setGalleryEditForm({ title: img.title, description: img.description, display_order: img.display_order, status: img.status });
+                                setGalleryEditForm({ title: img.title, description: img.description, display_order: img.display_order, status: img.status, video_embed_url: img.video_embed_url });
                               }}
                               style={{
                                 flex: 1, background: 'rgba(102, 126, 234, 0.1)', color: '#667eea',
@@ -306,11 +337,13 @@ export default function GalleryTab(props: any) {
                       style={{
                         position: 'absolute', top: 16, right: 16,
                         background: 'rgba(102, 126, 234, 0.1)', border: 'none',
-                        fontSize: 22, color: '#667eea', cursor: 'pointer',
+                        fontSize: 20, color: '#667eea', cursor: 'pointer',
                         width: '36px', height: '36px', borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                    >×</button>
+                    >
+                      <FaTimes />
+                    </button>
                     <h2 style={{
                       fontWeight: 700, marginBottom: 24, fontSize: '24px',
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -359,7 +392,7 @@ export default function GalleryTab(props: any) {
                         )}
                       </div>
                       <div>
-                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Select Video (optional)</label>
+                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Select Video File (optional)</label>
                         <input
                           type="file"
                           accept="video/*"
@@ -380,14 +413,32 @@ export default function GalleryTab(props: any) {
                           </div>
                         )}
                       </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Video Embed Link (optional)</label>
+                        <input
+                          value={galleryVideoEmbedUrl}
+                          onChange={e => setGalleryVideoEmbedUrl(e.target.value)}
+                          placeholder="e.g. YouTube video link"
+                          style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: '2px solid rgba(102, 126, 234, 0.2)', fontSize: '15px' }}
+                        />
+                        {galleryVideoEmbedUrl && (
+                          <div style={{ marginTop: 12, position: 'relative', height: 180, borderRadius: 10, overflow: 'hidden', background: '#000' }}>
+                            <iframe
+                              src={getYouTubeEmbedUrl(galleryVideoEmbedUrl)}
+                              style={{ width: '100%', height: '100%', border: 'none' }}
+                              allowFullScreen
+                            />
+                          </div>
+                        )}
+                      </div>
                       <button
                         type="submit"
-                        disabled={loading || (!galleryImageFile && !galleryVideoFile)}
+                        disabled={loading || (!galleryImageFile && !galleryVideoFile && !galleryVideoEmbedUrl)}
                         style={{
                           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           color: '#fff', border: 'none', borderRadius: '12px',
                           padding: '14px 28px', fontWeight: 700, fontSize: '16px',
-                          cursor: (loading || (!galleryImageFile && !galleryVideoFile)) ? 'not-allowed' : 'pointer',
+                          cursor: (loading || (!galleryImageFile && !galleryVideoFile && !galleryVideoEmbedUrl)) ? 'not-allowed' : 'pointer',
                           boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
                         }}
                       >

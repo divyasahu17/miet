@@ -414,7 +414,8 @@ async function setupDatabase() {
       product_id TEXT,
       product_name TEXT,
       price REAL,
-      quantity INTEGER
+      quantity INTEGER,
+      delivery_status TEXT DEFAULT 'pending'
     );
 
 
@@ -806,6 +807,14 @@ async function setupDatabase() {
       is_primary BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(consultant_id) REFERENCES consultants(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER,
+      product_id INTEGER,
+      delivery_status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS users_auth (
@@ -6413,6 +6422,95 @@ app.put('/api/admin/consultations/:id', authenticateToken, requireRole('superadm
   }
 });
 
+// POST /api/admin/consultations/:id/generate-meet - Generate Google Meet link for a consultation
+app.post('/api/admin/consultations/:id/generate-meet', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminUserId = req.user.id;
+
+    // Get consultation details
+    const consultation = await db.get('SELECT * FROM appointments WHERE id = ? AND meeting_type = "consultation"', [id]);
+    if (!consultation) {
+      return res.status(404).json({ success: false, message: 'Consultation not found' });
+    }
+
+    // Get consultant details
+    const consultant = await db.get('SELECT * FROM consultants WHERE id = ?', [consultation.consultant_id]);
+
+    // Parse attendees
+    let attendeeEmails = [];
+    try {
+      attendeeEmails = JSON.parse(consultation.attendee_emails || '[]');
+    } catch (e) {
+      attendeeEmails = [];
+    }
+
+    // Get Google Calendar client for admin
+    const calendarClient = await getGoogleCalendarClient(adminUserId, 'admin');
+
+    // Create Google Meet event
+    const eventDetails = {
+      title: consultation.title,
+      description: consultation.description || '',
+      startTime: consultation.start_time,
+      endTime: consultation.end_time,
+      timezone: 'Asia/Kolkata',
+      attendees: attendeeEmails.map(email => ({ email }))
+    };
+
+    const googleEvent = await createGoogleMeetEvent(calendarClient, eventDetails);
+    const meetLink = googleEvent.conferenceData?.entryPoints?.[0]?.uri;
+    const calendarEventId = googleEvent.id;
+
+    if (!meetLink) {
+      return res.status(400).json({ success: false, message: 'Failed to generate Google Meet link from Google Calendar API' });
+    }
+
+    // Update database
+    await db.run(
+      'UPDATE appointments SET google_meet_link = ?, google_calendar_event_id = ? WHERE id = ?',
+      [meetLink, calendarEventId, id]
+    );
+
+    // Send email notifications
+    const emailSubject = `Google Meet Link Generated: ${consultation.title}`;
+    const emailHtml = `
+      <h2>Google Meet Link Generated for your Consultation</h2>
+      <p><strong>Title:</strong> ${consultation.title}</p>
+      ${consultant ? `<p><strong>Consultant:</strong> ${consultant.name}</p>` : ''}
+      <p><strong>Date & Time:</strong> ${new Date(consultation.start_time).toLocaleString()}</p>
+      <p><strong>Duration:</strong> ${consultation.duration_minutes} minutes</p>
+      <p><strong>Google Meet Link:</strong> <a href="${meetLink}">Join Meeting</a></p>
+      ${consultation.description ? `<p><strong>Description:</strong> ${consultation.description}</p>` : ''}
+      <p>The meeting has also been added to your Google Calendar.</p>
+    `;
+
+    // Send to consultant
+    if (consultant && consultant.email) {
+      await sendEmailNotification(consultant.email, emailSubject, emailHtml, emailHtml.replace(/<[^>]*>/g, ''));
+    }
+
+    // Send to attendees
+    if (attendeeEmails && attendeeEmails.length > 0) {
+      await sendEmailNotification(attendeeEmails, emailSubject, emailHtml, emailHtml.replace(/<[^>]*>/g, ''));
+    }
+
+    res.json({
+      success: true,
+      message: 'Google Meet link generated and emails sent successfully',
+      google_meet_link: meetLink,
+      google_calendar_event_id: calendarEventId
+    });
+
+  } catch (error) {
+    console.error('Error generating Google Meet link:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error generating Google Meet link. Please check if Google OAuth is setup.'
+    });
+  }
+});
+
 // DELETE /api/admin/consultations/:id - Delete consultation (Admin only)
 app.delete('/api/admin/consultations/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
   try {
@@ -6653,10 +6751,13 @@ app.delete('/api/webinars/:id', authenticateToken, requireRole(['superadmin', 'c
 app.get('/api/webinars/public', async (req, res) => {
   try {
     const webinars = await db.all(
-      `SELECT *, (SELECT COUNT(*) FROM webinar_registrations WHERE webinar_id = webinars.id) as current_attendees
-       FROM webinars
-       WHERE status = 'scheduled' AND start_time > datetime('now')
-       ORDER BY start_time ASC`
+      `SELECT w.*, (SELECT COUNT(*) FROM webinar_registrations WHERE webinar_id = w.id) as current_attendees
+       FROM webinars w
+       LEFT JOIN consultants c ON w.organizer_email = c.email
+       WHERE w.status = 'scheduled' 
+         AND w.start_time > datetime('now')
+         AND (c.id IS NULL OR c.approval_status = 'approved')
+       ORDER BY w.start_time ASC`
     );
 
     res.json({
@@ -6971,7 +7072,8 @@ async function ensureProductsTableV2() {
         'rating', 'total_ratings', 'enrolled_students',
         // New common and specific fields
         'category', 'format', 'total_pages', 'preview_file', 'platform', 'version',
-        'app_size', 'brand', 'model', 'warranty', 'specifications', 'stock_quantity', 'images'
+        'app_size', 'brand', 'model', 'warranty', 'specifications', 'stock_quantity', 'images',
+        'consultant_id', 'approval_status'
       ];
 
       const missingColumns = requiredColumns.filter(col => !columnNames.includes(col));
@@ -6989,6 +7091,10 @@ async function ensureProductsTableV2() {
             columnType = 'REAL DEFAULT 0.00';
           } else if (col === 'level') {
             columnType = 'TEXT DEFAULT "Beginner"';
+          } else if (col === 'consultant_id') {
+            columnType = 'INTEGER DEFAULT NULL';
+          } else if (col === 'approval_status') {
+            columnType = 'TEXT DEFAULT "approved"';
           }
 
           try {
@@ -7052,7 +7158,9 @@ async function ensureProductsTableV2() {
           warranty TEXT,
           specifications TEXT,
           stock_quantity INTEGER DEFAULT 0,
-          images TEXT
+          images TEXT,
+          consultant_id INTEGER DEFAULT NULL,
+          approval_status TEXT DEFAULT 'approved'
     );
   `);
       console.log('Products table created with complete schema including course fields');
@@ -7272,6 +7380,7 @@ async function ensureGalleryTable() {
         description TEXT,
         image_path TEXT,
         video_path TEXT,
+        video_embed_url TEXT,
         display_order INTEGER DEFAULT 0,
         status TEXT CHECK(status IN ('active', 'inactive')) NOT NULL DEFAULT 'active',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -7279,7 +7388,7 @@ async function ensureGalleryTable() {
       );
     `);
 
-    // Check if video_path exists in case of existing table
+    // Check if video_path or video_embed_url exists in case of existing table
     const columns = await db.all("PRAGMA table_info(gallery_images)");
     const columnNames = columns.map(c => c.name);
 
@@ -7293,6 +7402,7 @@ async function ensureGalleryTable() {
           description TEXT,
           image_path TEXT,
           video_path TEXT,
+          video_embed_url TEXT,
           display_order INTEGER DEFAULT 0,
           status TEXT CHECK(status IN ('active', 'inactive')) NOT NULL DEFAULT 'active',
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -7311,6 +7421,15 @@ async function ensureGalleryTable() {
       await db.exec("DROP TABLE gallery_images;");
       await db.exec("ALTER TABLE gallery_images_new RENAME TO gallery_images;");
       console.log('Successfully migrated gallery_images table to support video_path and nullable image_path!');
+    }
+
+    // Now check if video_embed_url is missing
+    const columnsUpdated = await db.all("PRAGMA table_info(gallery_images)");
+    const columnNamesUpdated = columnsUpdated.map(c => c.name);
+    if (!columnNamesUpdated.includes('video_embed_url')) {
+      console.log('Adding video_embed_url column to gallery_images table...');
+      await db.exec("ALTER TABLE gallery_images ADD COLUMN video_embed_url TEXT;");
+      console.log('Successfully added video_embed_url column to gallery_images!');
     } else {
       console.log('Gallery images table ensured successfully.');
     }
@@ -7998,6 +8117,9 @@ app.post('/api/products', productUpload.fields([
     const icon = files.icon ? '/uploads/icons/' + files.icon[0].filename : (data.icon || null);
     const pdf_file = files.pdf_file ? '/uploads/pdfs/' + files.pdf_file[0].filename : (data.pdf_file || data.downloadableFile || null);
 
+    const consultant_id = data.consultant_id ? parseInt(data.consultant_id) : null;
+    const approval_status = consultant_id ? 'pending' : 'approved';
+
     // Insert into database
     const result = await db.run(
       `INSERT INTO products (
@@ -8006,15 +8128,15 @@ app.post('/api/products', productUpload.fields([
         subtitle, instructor_name, instructor_title, instructor_bio, instructor_image,
         duration, total_lectures, language, level, rating, total_ratings, enrolled_students,
         category, format, total_pages, preview_file, platform, version, app_size,
-        brand, model, warranty, specifications, stock_quantity, images
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        brand, model, warranty, specifications, stock_quantity, images, consultant_id, approval_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         productType, title, name, description, price, video_url, thumbnail, author,
         pdf_file, product_image, purchase_link, download_link, icon, status, featured,
         subtitle, instructor_name, instructor_title, instructor_bio, instructor_image,
         duration, total_lectures, language, level, rating, total_ratings, enrolled_students,
         category, format, total_pages, preview_file, platform, version, app_size,
-        brand, model, warranty, specifications, stock_quantity, images
+        brand, model, warranty, specifications, stock_quantity, images, consultant_id, approval_status
       ]
     );
 
@@ -8145,6 +8267,15 @@ app.get('/api/products', async (req, res) => {
     if (req.query.status) {
       sql += ' AND status = ?';
       params.push(req.query.status);
+    }
+
+    if (req.query.all !== 'true') {
+      sql += ' AND approval_status = "approved"';
+    }
+
+    if (req.query.consultant_id) {
+      sql += ' AND consultant_id = ?';
+      params.push(req.query.consultant_id);
     }
 
     if (req.query.featured !== undefined) {
@@ -8514,6 +8645,78 @@ app.delete('/api/products/:id', async (req, res) => {
       success: false,
       message: 'Database error occurred while deleting product'
     });
+  }
+});
+
+// POST /api/products/:id/approve - Approve a product (Admin only)
+app.post('/api/products/:id/approve', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.run('UPDATE products SET approval_status = "approved" WHERE id = ?', id);
+    res.json({ success: true, message: 'Product approved successfully' });
+  } catch (err) {
+    console.error('Error approving product:', err);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// GET /api/consultants/:id/orders - Fetch orders containing consultant's products
+app.get('/api/consultants/:id/orders', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const orders = await db.all(`
+      SELECT o.id as order_id, o.first_name, o.last_name, o.email, o.phone, o.address, o.city, o.state, o.zip_code, o.country,
+             o.payment_status, o.created_at,
+             i.id as item_id, i.product_id, i.product_name, i.price, i.quantity, i.delivery_status
+      FROM user_orders o
+      JOIN user_order_items i ON o.id = i.order_id
+      JOIN products p ON i.product_id = p.id
+      WHERE p.consultant_id = ?
+      ORDER BY o.created_at DESC
+    `, id);
+
+    // Group items by order
+    const groupedOrders = {};
+    for (const row of orders) {
+      if (!groupedOrders[row.order_id]) {
+        groupedOrders[row.order_id] = {
+          id: row.order_id,
+          customer_name: row.first_name + ' ' + row.last_name,
+          email: row.email,
+          phone: row.phone,
+          address: row.address + ', ' + row.city + ', ' + row.state + ' ' + row.zip_code,
+          payment_status: row.payment_status,
+          created_at: row.created_at,
+          items: []
+        };
+      }
+      groupedOrders[row.order_id].items.push({
+        id: row.item_id,
+        product_id: row.product_id,
+        product_name: row.product_name,
+        price: row.price,
+        quantity: row.quantity,
+        delivery_status: row.delivery_status
+      });
+    }
+
+    res.json({ success: true, orders: Object.values(groupedOrders) });
+  } catch (err) {
+    console.error('Error fetching consultant orders:', err);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// PUT /api/orders/:orderId/items/:itemId/status - Update item delivery status
+app.put('/api/orders/:orderId/items/:itemId/status', authenticateToken, async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { delivery_status } = req.body;
+    await db.run('UPDATE user_order_items SET delivery_status = ? WHERE id = ?', [delivery_status, itemId]);
+    res.json({ success: true, message: 'Status updated' });
+  } catch (err) {
+    console.error('Error updating status:', err);
+    res.status(500).json({ success: false, message: 'Database error' });
   }
 });
 
@@ -8948,14 +9151,14 @@ app.post('/api/gallery', galleryUpload.fields([
     if (!token) return res.status(401).json({ error: 'Authentication required' });
     try { jwt.verify(token, JWT_SECRET); } catch (e) { return res.status(401).json({ error: 'Invalid token' }); }
 
-    const { title, description, status } = req.body;
+    const { title, description, status, video_embed_url } = req.body;
     const validStatus = status === 'active' || status === 'inactive' ? status : 'active';
 
     const imageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
     const videoFile = req.files && req.files['video'] ? req.files['video'][0] : null;
 
-    if (!imageFile && !videoFile) {
-      return res.status(400).json({ error: 'Please upload either an image, a video, or both.' });
+    if (!imageFile && !videoFile && !video_embed_url) {
+      return res.status(400).json({ error: 'Please upload either an image, a video, or provide a video embed url.' });
     }
 
     const imagePath = imageFile ? `/uploads/gallery/${imageFile.filename}` : null;
@@ -8966,8 +9169,8 @@ app.post('/api/gallery', galleryUpload.fields([
     const nextOrder = (maxOrder?.max_order || 0) + 1;
 
     const result = await db.run(
-      `INSERT INTO gallery_images (title, description, image_path, video_path, display_order, status) VALUES (?, ?, ?, ?, ?, ?)`,
-      [title || '', description || '', imagePath, videoPath, nextOrder, validStatus]
+      `INSERT INTO gallery_images (title, description, image_path, video_path, video_embed_url, display_order, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title || '', description || '', imagePath, videoPath, video_embed_url || null, nextOrder, validStatus]
     );
 
     res.status(201).json({
@@ -8978,6 +9181,7 @@ app.post('/api/gallery', galleryUpload.fields([
         description: description || '',
         image_path: imagePath,
         video_path: videoPath,
+        video_embed_url: video_embed_url || null,
         display_order: nextOrder,
         status: validStatus
       }
@@ -9036,7 +9240,7 @@ app.put('/api/gallery/:id', galleryUpload.fields([
     const existing = await db.get('SELECT * FROM gallery_images WHERE id = ?', [id]);
     if (!existing) return res.status(404).json({ error: 'Gallery item not found' });
 
-    const { title, description, status, display_order, remove_image, remove_video } = req.body;
+    const { title, description, status, display_order, remove_image, remove_video, video_embed_url } = req.body;
     
     let imagePath = existing.image_path;
     let videoPath = existing.video_path;
@@ -9073,12 +9277,13 @@ app.put('/api/gallery/:id', galleryUpload.fields([
     }
 
     await db.run(
-      `UPDATE gallery_images SET title = ?, description = ?, image_path = ?, video_path = ?, display_order = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      `UPDATE gallery_images SET title = ?, description = ?, image_path = ?, video_path = ?, video_embed_url = ?, display_order = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [
         title !== undefined ? title : existing.title,
         description !== undefined ? description : existing.description,
         imagePath,
         videoPath,
+        video_embed_url !== undefined ? video_embed_url : existing.video_embed_url,
         display_order !== undefined ? parseInt(display_order) : existing.display_order,
         status || existing.status,
         id
@@ -9854,6 +10059,60 @@ app.post('/api/create-order', async (req, res) => {
         emailHtml,
         `New order #${orderId} was placed by ${userDetails.email}. Total amount: ₹${total}`
       );
+
+      // --- NEW: Send to Consultants ---
+      // We group the items by consultant email and send them an email.
+      const consultantItems = {};
+      for (const item of items) {
+        const product = await db.get('SELECT p.consultant_id, c.email FROM products p LEFT JOIN consultants c ON p.consultant_id = c.id WHERE p.id = ?', [item.id]);
+        if (product && product.consultant_id && product.email) {
+          if (!consultantItems[product.email]) {
+            consultantItems[product.email] = [];
+          }
+          consultantItems[product.email].push(item);
+        }
+      }
+
+      for (const [consultantEmail, cItems] of Object.entries(consultantItems)) {
+        const cItemsHtml = cItems.map(item => `
+          <tr>
+            <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.title || item.name}</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1;">₹${item.price}</td>
+            <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.quantity}</td>
+          </tr>
+        `).join('');
+
+        const consultantHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h2 style="color: #667eea; text-align: center; margin-bottom: 24px;">New Order for Your Product</h2>
+            <p>Hi Consultant,</p>
+            <p>A new order <strong>#${orderId}</strong> containing your product(s) has been placed by ${userDetails.firstName} ${userDetails.lastName}.</p>
+            
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid #cbd5e1; margin-bottom: 20px;">
+              <thead>
+                <tr style="background-color: #f1f5f9;">
+                  <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Product</th>
+                  <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Price</th>
+                  <th align="left" style="padding: 8px; border: 1px solid #cbd5e1;">Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cItemsHtml}
+              </tbody>
+            </table>
+            
+            <p>Please check your dashboard to update the delivery status.</p>
+          </div>
+        `;
+
+        await sendEmailNotification(
+          consultantEmail,
+          `New Order #${orderId} - Action Required`,
+          consultantHtml,
+          `A new order #${orderId} was placed containing your products. Please check your dashboard.`
+        );
+      }
+      
     } catch (emailErr) {
       console.error('Error sending order emails:', emailErr);
     }
@@ -10718,6 +10977,30 @@ app.post('/api/webinars/:id/register', authenticateUser, async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `, [webinarId, req.user?.id || null, name, email, phone, 'paid']);
 
+    // Send emails automatically
+    const link = (webinar.platform_type === 'google_meet') ? webinar.google_meet_link : webinar.manual_link;
+    const time = new Date(webinar.start_time).toLocaleString();
+    
+    let userEmailBody = webinar.joining_email_template || `<p>Join: {{link}}</p>`;
+    userEmailBody = userEmailBody.replace('{{link}}', link);
+
+    const fullUserEmail = `
+      <h2>Registration Confirmed!</h2>
+      <p>Hi ${name},</p>
+      <p>You have successfully registered for the free webinar: <b>${webinar.title}</b>.</p>
+      <p>Time: ${time}</p>
+      ${userEmailBody}
+    `;
+    await sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail);
+
+    if (webinar.organizer_email) {
+      const consultantEmailBody = `
+        <h2>New Registration</h2>
+        <p>A new user (${name} - ${email}) has registered for your free webinar <b>${webinar.title}</b>.</p>
+      `;
+      await sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody);
+    }
+
     res.json({ success: true, message: 'Registered successfully' });
 
   } catch (err) {
@@ -10756,6 +11039,33 @@ app.post('/api/webinars/:id/verify-payment', async (req, res) => {
       (webinar_id, name, email, phone, payment_status, payment_id)
       VALUES (?, ?, ?, ?, 'paid', ?)
     `, [req.params.id, name, email, phone, razorpay_payment_id]);
+
+    // Send emails automatically after payment
+    const webinar = await db.get('SELECT * FROM webinars WHERE id = ?', req.params.id);
+    if (webinar) {
+      const link = (webinar.platform_type === 'google_meet') ? webinar.google_meet_link : webinar.manual_link;
+      const time = new Date(webinar.start_time).toLocaleString();
+      
+      let userEmailBody = webinar.joining_email_template || `<p>Join: {{link}}</p>`;
+      userEmailBody = userEmailBody.replace('{{link}}', link);
+
+      const fullUserEmail = `
+        <h2>Payment Successful & Registration Confirmed!</h2>
+        <p>Hi ${name},</p>
+        <p>You have successfully paid and registered for the webinar: <b>${webinar.title}</b>.</p>
+        <p>Time: ${time}</p>
+        ${userEmailBody}
+      `;
+      await sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail);
+
+      if (webinar.organizer_email) {
+        const consultantEmailBody = `
+          <h2>New Registration & Payment</h2>
+          <p>A new user (${name} - ${email}) has successfully paid and registered for your webinar <b>${webinar.title}</b>.</p>
+        `;
+        await sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody);
+      }
+    }
 
     res.json({ success: true, message: "Payment verified & registered" });
 

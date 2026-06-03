@@ -7,9 +7,22 @@ interface GalleryImage {
   description: string;
   image_path: string;
   video_path?: string;
+  video_embed_url?: string;
   display_order: number;
   status: string;
 }
+
+const getYouTubeEmbedUrl = (url: string) => {
+  if (!url) return '';
+  let videoId = '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    videoId = match[2];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  return url;
+};
 
 export default function ImageGallery() {
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -302,16 +315,31 @@ export default function ImageGallery() {
           borderRadius: '24px',
           overflow: 'hidden',
           boxShadow: '0 25px 60px rgba(0,0,0,0.4)',
-          cursor: images[currentIndex]?.video_path ? 'default' : 'pointer'
+          cursor: (images[currentIndex]?.video_path || images[currentIndex]?.video_embed_url) ? 'default' : 'pointer'
         }}
           onClick={() => {
-            if (!images[currentIndex]?.video_path) {
+            if (!images[currentIndex]?.video_path && !images[currentIndex]?.video_embed_url) {
               setLightboxIndex(currentIndex);
               setLightboxOpen(true);
             }
           }}
         >
-          {images[currentIndex]?.video_path ? (
+          {images[currentIndex]?.video_embed_url ? (
+            <iframe
+              src={getYouTubeEmbedUrl(images[currentIndex].video_embed_url)}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{
+                width: '100%',
+                height: 'clamp(300px, 45vw, 550px)',
+                border: 'none',
+                display: 'block',
+                background: '#000',
+                opacity: isTransitioning ? 0.6 : 1,
+                transition: 'opacity 0.6s ease'
+              }}
+            />
+          ) : images[currentIndex]?.video_path ? (
             <video
               src={getVideoUrl(images[currentIndex])}
               controls
@@ -483,6 +511,40 @@ export default function ImageGallery() {
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     onError={(e) => { (e.target as HTMLImageElement).src = '/intro.webp'; }}
                   />
+                ) : img.video_embed_url ? (
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    background: '#111827',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                  }}>
+                    {getYouTubeEmbedUrl(img.video_embed_url) ? (
+                      <img
+                        src={`https://img.youtube.com/vi/${getYouTubeEmbedUrl(img.video_embed_url).split('/embed/')[1]?.split('?')[0]}/hqdefault.jpg`}
+                        alt="YouTube Thumbnail"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : null}
+                    <div style={{
+                      position: 'absolute',
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '0.8rem',
+                      zIndex: 2
+                    }}>
+                      ▶
+                    </div>
+                  </div>
                 ) : img.video_path ? (
                   <div style={{
                     width: '100%',
@@ -608,7 +670,24 @@ export default function ImageGallery() {
           >
             &#8249;
           </button>
-          {images[lightboxIndex]?.video_path ? (
+          {images[lightboxIndex]?.video_embed_url ? (
+            <iframe
+              src={getYouTubeEmbedUrl(images[lightboxIndex].video_embed_url)}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{
+                width: '90vw',
+                height: '85vh',
+                maxWidth: '1000px',
+                maxHeight: '600px',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                background: '#000'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : images[lightboxIndex]?.video_path ? (
             <video
               src={getVideoUrl(images[lightboxIndex])}
               controls

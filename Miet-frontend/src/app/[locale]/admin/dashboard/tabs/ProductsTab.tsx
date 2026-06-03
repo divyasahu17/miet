@@ -9,6 +9,33 @@ type ProductType = 'Course' | 'E-book' | 'App' | 'Gadget';
 export default function ProductsTab(props: any) {
   const { DataTable, products, productEditId, productForm, setProductForm, setProductEditId, setShowProductModal, showProductModal, setDeleteProductId, setDeleteProductName, setShowDeleteModal, setSuccessMessage, setShowSuccessPopup, setProducts, getApiUrl } = props;
 
+  const handleApproveProduct = async (productId: number) => {
+    if (!confirm('Are you sure you want to approve this product?')) return;
+    try {
+      const token = localStorage.getItem('admin_jwt');
+      const res = await fetch(getApiUrl(`api/products/${productId}/approve`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        alert('Product approved successfully');
+        // Refresh products
+        const refreshRes = await fetch(getApiUrl('api/products?all=true'));
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          setProducts(data.products || data);
+        }
+      } else {
+        alert('Failed to approve product');
+      }
+    } catch (err) {
+      console.error('Error approving product:', err);
+      alert('Error approving product');
+    }
+  };
+
   return (
     <>
 
@@ -154,18 +181,44 @@ export default function ProductsTab(props: any) {
                   },
                   {
                     key: 'status',
-                    label: 'Status',
+                    label: 'Status / Approval',
                     sortable: true,
                     render: (value: any, row: any) => (
-                      <span style={{
-                        color: value === 'active' ? '#38a169' : '#e53e3e',
-                        fontWeight: 600,
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        background: value === 'active' ? 'rgba(56, 161, 105, 0.1)' : 'rgba(229, 62, 62, 0.1)'
-                      }}>
-                        {value || '-'}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <span style={{
+                          color: value === 'active' ? '#38a169' : '#e53e3e',
+                          fontWeight: 600,
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          background: value === 'active' ? 'rgba(56, 161, 105, 0.1)' : 'rgba(229, 62, 62, 0.1)',
+                          display: 'inline-block',
+                          width: 'max-content'
+                        }}>
+                          {value || '-'}
+                        </span>
+                        {row.approval_status === 'pending' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 600 }}>PENDING APPROVAL</span>
+                            <button
+                              onClick={() => handleApproveProduct(row.id)}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              Approve
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#059669', fontSize: '12px', fontWeight: 600 }}>APPROVED</span>
+                        )}
+                      </div>
                     )
                   }
                 ]}

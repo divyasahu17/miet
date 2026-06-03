@@ -82,22 +82,43 @@ export default function WebinarsTab(props: any) {
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Meet URL</label>
-              <input
-                type="url"
-                value={webinarForm.google_meet_link || ''}
-                onChange={e => setWebinarForm((f: any) => ({ ...f, google_meet_link: e.target.value }))}
-                placeholder="https://meet.google.com/..."
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Platform Type</label>
+              <select
+                value={webinarForm.platform_type || 'google_meet'}
+                onChange={e => setWebinarForm((f: any) => ({ ...f, platform_type: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: '2px solid rgba(102, 126, 234, 0.2)',
                   fontSize: '16px',
-                  transition: 'all 0.3s ease'
+                  transition: 'all 0.3s ease',
+                  backgroundColor: '#fff'
                 }}
-              />
+              >
+                <option value="google_meet">Google Meet (Auto Generate)</option>
+                <option value="others">Others (Manual Link)</option>
+              </select>
             </div>
+            {webinarForm.platform_type === 'others' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Meet URL</label>
+                <input
+                  type="url"
+                  value={webinarForm.manual_link || ''}
+                  onChange={e => setWebinarForm((f: any) => ({ ...f, manual_link: e.target.value }))}
+                  placeholder="https://meet.google.com/..."
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '2px solid rgba(102, 126, 234, 0.2)',
+                    fontSize: '16px',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              </div>
+            )}
             <div>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, color: '#333' }}>Start Date & Time *</label>
               <input

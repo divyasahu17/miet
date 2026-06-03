@@ -295,7 +295,9 @@ export default function AdminDashboard() {
     is_free: true,
     attendee_emails: [],
     meeting_notes: '',
-    status: 'scheduled'
+    status: 'scheduled',
+    platform_type: 'google_meet',
+    manual_link: ''
   });
   const [showWebinarModal, setShowWebinarModal] = useState(false);
   const [webinarEditId, setWebinarEditId] = useState<number | null>(null);
@@ -379,6 +381,7 @@ export default function AdminDashboard() {
     description: string;
     image_path: string;
     video_path?: string;
+    video_embed_url?: string;
     display_order: number;
     status: 'active' | 'inactive';
     created_at?: string;
@@ -389,6 +392,7 @@ export default function AdminDashboard() {
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [galleryTitle, setGalleryTitle] = useState('');
   const [galleryDescription, setGalleryDescription] = useState('');
+  const [galleryVideoEmbedUrl, setGalleryVideoEmbedUrl] = useState('');
   const [galleryEditId, setGalleryEditId] = useState<number | null>(null);
   const [galleryEditForm, setGalleryEditForm] = useState<Partial<GalleryImage>>({});
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -616,7 +620,7 @@ export default function AdminDashboard() {
   // Fetch products
   async function fetchProducts() {
     try {
-      const res = await fetch(getApiUrl('api/products'));
+      const res = await fetch(getApiUrl('api/products?all=true'));
       if (res.ok) {
         const data = await res.json();
 
@@ -832,6 +836,32 @@ const fetchOrders = async () => {
     } catch (error) {
 
       setConsultations([]);
+    }
+  }
+
+  async function handleGenerateMeetLink(id: number) {
+    try {
+      const token = localStorage.getItem("admin_jwt");
+      const res = await fetch(getApiUrl(`api/admin/consultations/${id}/generate-meet`), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        addNotification({
+          type: 'success',
+          title: 'Google Meet Generated',
+          message: data.message || 'Google Meet link generated and attendees notified!'
+        });
+        fetchConsultations();
+      } else {
+        alert(data.message || 'Failed to generate Google Meet link. Please verify Google OAuth settings.');
+      }
+    } catch (error) {
+      alert('Error generating Google Meet link.');
     }
   }
 
@@ -1837,8 +1867,8 @@ useEffect(() => {
 
   async function handleGalleryUpload(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    if (!galleryImageFile && !galleryVideoFile) {
-      alert('Please select either an image or a video file');
+    if (!galleryImageFile && !galleryVideoFile && !galleryVideoEmbedUrl) {
+      alert('Please select an image, a video file, or enter a video embed link');
       return;
     }
     const token = localStorage.getItem("admin_jwt");
@@ -1851,6 +1881,7 @@ useEffect(() => {
       const formData = new FormData();
       if (galleryImageFile) formData.append('image', galleryImageFile);
       if (galleryVideoFile) formData.append('video', galleryVideoFile);
+      if (galleryVideoEmbedUrl) formData.append('video_embed_url', galleryVideoEmbedUrl);
       formData.append('title', galleryTitle);
       formData.append('description', galleryDescription);
       formData.append('status', 'active');
@@ -1864,6 +1895,7 @@ useEffect(() => {
       if (res.ok) {
         setGalleryImageFile(null);
         setGalleryVideoFile(null);
+        setGalleryVideoEmbedUrl('');
         setGalleryImagePreview('');
         setGalleryVideoPreview('');
         setGalleryTitle('');
@@ -1894,6 +1926,7 @@ useEffect(() => {
       if (galleryEditForm.description !== undefined) formData.append('description', galleryEditForm.description);
       if (galleryEditForm.status) formData.append('status', galleryEditForm.status);
       if (galleryEditForm.display_order !== undefined) formData.append('display_order', String(galleryEditForm.display_order));
+      if (galleryEditForm.video_embed_url !== undefined) formData.append('video_embed_url', galleryEditForm.video_embed_url);
 
       if (galleryEditImageFile) formData.append('image', galleryEditImageFile);
       if (galleryEditVideoFile) formData.append('video', galleryEditVideoFile);
@@ -2075,6 +2108,8 @@ useEffect(() => {
           attendee_emails: [],
           meeting_notes: '',
           status: 'scheduled',
+          platform_type: 'google_meet',
+          manual_link: '',
           google_meet_link: ''
         });
         setWebinarEditId(null);
@@ -2654,6 +2689,8 @@ useEffect(() => {
   galleryImages,
   galleryPreview,
   galleryTitle,
+  galleryVideoEmbedUrl,
+  setGalleryVideoEmbedUrl,
   galleryImageFile,
   setGalleryImageFile,
   galleryVideoFile,
@@ -2703,6 +2740,7 @@ useEffect(() => {
   handleConsultationDelete,
   handleConsultationEdit,
   handleConsultationSubmit,
+  handleGenerateMeetLink,
   handleCouponDelete,
   handleCouponSubmit,
   handlePlanDelete, handleOverrideDelete,
