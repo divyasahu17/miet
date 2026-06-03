@@ -102,10 +102,17 @@ export default function ConsultantDetailPage() {
 
   const handleBookClick = () => {
     if (user) {
-      // User is logged in, redirect to dashboard
-      router.push(`/${locale}/dashboard`);
+      // User is logged in, redirect to consultations page to book
+      if (consultant?.id) {
+        router.push(`/${locale}/services/consultations?consultantId=${consultant.id}`);
+      } else {
+        router.push(`/${locale}/dashboard`);
+      }
     } else {
-      // User not logged in, show login modal
+      // User not logged in, save pending consultant and show login modal
+      if (consultant?.id) {
+        localStorage.setItem('pending_consultant_id', consultant.id.toString());
+      }
       setShowLoginModal(true);
     }
   };
@@ -113,8 +120,12 @@ export default function ConsultantDetailPage() {
   const handleLoginSuccess = (userData: any) => {
     setUser(userData);
     setShowLoginModal(false);
-    // Redirect to dashboard after successful login
-    router.push(`/${locale}/dashboard`);
+    // Redirect to consultations page to resume booking or dashboard
+    if (consultant?.id) {
+      router.push(`/${locale}/services/consultations?consultantId=${consultant.id}`);
+    } else {
+      router.push(`/${locale}/dashboard`);
+    }
   };
 
   const handleLoginModalClose = () => {
