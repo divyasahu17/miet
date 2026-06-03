@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUsers, FaChartLine, FaBell, FaCog, FaSignOutAlt, FaPlus, FaEdit, FaTrash, FaEye, FaStore, FaChevronLeft, FaImages, FaGoogle, FaCheck } from 'react-icons/fa';
+import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUsers, FaChartLine, FaBell, FaCog, FaSignOutAlt, FaPlus, FaEdit, FaTrash, FaEye, FaStore, FaChevronLeft, FaImages, FaGoogle, FaCheck, FaBoxOpen, FaShoppingBag } from 'react-icons/fa';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import RazorpayPayment from '@/components/RazorpayPayment';
