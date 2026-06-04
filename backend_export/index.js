@@ -3671,9 +3671,19 @@ app.put('/api/consultants/:id', authenticateToken, async (req, res) => {
 
 // Delete consultant (superadmin only)
 app.delete('/api/consultants/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
-  const { id } = req.params;
-  await db.run('DELETE FROM consultants WHERE id = ?', id);
-  res.json({ success: true });
+  try {
+    const { id } = req.params;
+    const consultant = await db.get('SELECT user_id FROM consultants WHERE id = ?', id);
+    if (consultant) {
+      await db.run('DELETE FROM users WHERE id = ?', consultant.user_id);
+      await db.run('DELETE FROM users_auth WHERE id = ?', consultant.user_id);
+    }
+    await db.run('DELETE FROM consultants WHERE id = ?', id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting consultant:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 // Toggle consultant status (consultant or superadmin)
 app.post('/api/consultants/:id/status', authenticateToken, async (req, res) => {

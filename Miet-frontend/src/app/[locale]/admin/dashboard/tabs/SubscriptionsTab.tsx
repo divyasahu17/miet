@@ -104,10 +104,15 @@ export default function SubscriptionsTab() {
         setIsModalOpen(false);
         fetchPlans();
       } else {
-        addNotification({ type: "error", title: "Error", message: "Failed to save plan." });
+        let errorMsg = "Failed to save plan.";
+        try {
+          const errJson = await res.json();
+          if (errJson.error) errorMsg = errJson.error;
+        } catch(e) {}
+        addNotification({ type: "error", title: "Error", message: errorMsg });
       }
-    } catch (error) {
-      addNotification({ type: "error", title: "Error", message: "Network error occurred." });
+    } catch (error: any) {
+      addNotification({ type: "error", title: "Error", message: error.message || "Network error occurred." });
     }
   };
 
