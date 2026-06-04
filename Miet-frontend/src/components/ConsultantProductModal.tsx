@@ -6,12 +6,14 @@ type ProductType = 'Course' | 'E-book' | 'App' | 'Gadget';
 interface ConsultantProductModalProps {
   productForm: any;
   setProductForm: React.Dispatch<React.SetStateAction<any>>;
+  consultantId?: number;
   onClose: () => void;
 }
 
 export default function ConsultantProductModal({
   productForm,
   setProductForm,
+  consultantId,
   onClose
 }: ConsultantProductModalProps) {
   const [submitting, setSubmitting] = useState(false);
@@ -27,6 +29,9 @@ export default function ConsultantProductModal({
       formData.append('product_type', productForm.type || 'Course');
       formData.append('status', productForm.status || 'active');
       formData.append('featured', productForm.featured ? 'true' : 'false');
+      if (consultantId) {
+        formData.append('consultant_id', String(consultantId));
+      }
       
       // Type specific fields
       if (productForm.type === 'Course') {

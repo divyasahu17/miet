@@ -175,7 +175,7 @@ export default function ConsultantDashboard() {
 
     try {
       // Load consultant profile
-      await loadConsultantProfile(token);
+      const profileData = await loadConsultantProfile(token);
       // Load appointments
       await loadAppointments(token);
       // Load webinars
@@ -185,7 +185,11 @@ export default function ConsultantDashboard() {
       // Load plans
       await loadPlans(token);
       // Load products
-      await loadProducts(token);
+      if (profileData && profileData.id) {
+        await loadProducts(token, profileData.id);
+      } else {
+        await loadProducts(token);
+      }
     } catch (error) {
 
     } finally {
@@ -241,19 +245,19 @@ export default function ConsultantDashboard() {
     }
   };
 
-  const loadProducts = async (token: string) => {
+  const loadProducts = async (token: string, consultantId?: number) => {
     try {
-      const response = await fetch(`${getApiUrl('api/products')}`, {
+      const idToUse = consultantId || consultant?.id;
+      const url = idToUse 
+        ? `${getApiUrl('api/products')}?consultant_id=${idToUse}&all=true`
+        : `${getApiUrl('api/products')}`;
+
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
         const allProducts = data.products || data.data || [];
-        
-        // Wait, if it returns all products across the site, how to filter?
-        // Maybe fetch profiles first. But consultant profile loaded in loadConsultantProfile sets consultant.
-        // I will just store all fetched items, and filter during render using consultant?.email or consultant name.
-        // actually let's just store allProducts.
         setProducts(allProducts);
       }
     } catch (error) {
@@ -2565,6 +2569,7 @@ const handleProfileUpdate = async () => {
         <ConsultantProductModal
           productForm={productForm}
           setProductForm={setProductForm}
+          consultantId={consultant?.id}
           onClose={async () => {
             setShowProductModal(false);
             const token = localStorage.getItem('consultant_jwt');

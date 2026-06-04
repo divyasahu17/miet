@@ -180,6 +180,12 @@ export default function ProductsTab(props: any) {
                     )
                   },
                   {
+                    key: 'consultant_id',
+                    label: 'Added By (Consultant ID)',
+                    sortable: true,
+                    render: (value: any, row: any) => row.consultant_id ? `Consultant #${row.consultant_id}` : 'Admin'
+                  },
+                  {
                     key: 'status',
                     label: 'Status / Approval',
                     sortable: true,
