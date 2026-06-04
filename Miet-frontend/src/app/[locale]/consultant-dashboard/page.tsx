@@ -2332,94 +2332,9 @@ const handleProfileUpdate = async () => {
             )}
 
             {activeTab === 'orders' && (
-              <div>
-                <h2 style={titleStyle}>Product Orders</h2>
-                {orders.length === 0 ? (
-                  <div style={{ padding: '40px', textAlign: 'center', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
-                    <p>No orders received yet.</p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gap: '20px' }}>
-                    {orders.map((order: any) => (
-                      <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '16px' }}>
-                          <div>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#111827' }}>Order #{order.id}</h3>
-                            <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                              Placed on {new Date(order.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <span style={{ 
-                              background: order.payment_status === 'paid' ? '#dcfce7' : '#fee2e2',
-                              color: order.payment_status === 'paid' ? '#166534' : '#991b1b',
-                              padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'
-                            }}>
-                              {order.payment_status?.toUpperCase() || 'PENDING'}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                          <div>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>Customer Details</h4>
-                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Name:</strong> {order.customer_name}</p>
-                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Email:</strong> {order.email}</p>
-                            <p style={{ margin: '2px 0', fontSize: '14px', color: '#4b5563' }}><strong>Phone:</strong> {order.phone}</p>
-                          </div>
-                          <div>
-                            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>Shipping Address</h4>
-                            <p style={{ margin: '0', fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>{order.address}</p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#374151' }}>Ordered Products</h4>
-                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr style={{ background: '#f3f4f6', textAlign: 'left', fontSize: '13px', color: '#4b5563' }}>
-                                <th style={{ padding: '8px 12px', borderRadius: '6px 0 0 6px' }}>Item</th>
-                                <th style={{ padding: '8px 12px' }}>Qty</th>
-                                <th style={{ padding: '8px 12px' }}>Price</th>
-                                <th style={{ padding: '8px 12px', borderRadius: '0 6px 6px 0' }}>Delivery Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {order.items.map((item: any) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                  <td style={{ padding: '12px', fontSize: '14px', color: '#1f2937', fontWeight: '500' }}>{item.product_name}</td>
-                                  <td style={{ padding: '12px', fontSize: '14px', color: '#4b5563' }}>{item.quantity}</td>
-                                  <td style={{ padding: '12px', fontSize: '14px', color: '#4b5563' }}>₹{item.price}</td>
-                                  <td style={{ padding: '12px' }}>
-                                    <select
-                                      value={item.delivery_status || 'pending'}
-                                      onChange={(e) => handleUpdateDeliveryStatus(order.id, item.id, e.target.value)}
-                                      style={{
-                                        padding: '6px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #d1d5db',
-                                        fontSize: '13px',
-                                        outline: 'none',
-                                        background: item.delivery_status === 'delivered' ? '#dcfce7' : 
-                                                  item.delivery_status === 'shipped' ? '#dbeafe' : '#fef3c7'
-                                      }}
-                                    >
-                                      <option value="pending">Pending</option>
-                                      <option value="processing">Processing</option>
-                                      <option value="shipped">Shipped</option>
-                                      <option value="delivered">Delivered</option>
-                                    </select>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ConsultantOrdersTab orders={orders} fetchOrders={() => {
+                if (consultant) loadOrders(localStorage.getItem('consultant_jwt') as string, consultant.id);
+              }} />
             )}
 
             {activeTab === 'profile' && (
