@@ -255,8 +255,16 @@ async function setupDatabase() {
     driver: sqlite3.Database
   });
 
-
-
+  // --- Auto Migration for subscription_plans ---
+  try {
+    const subCols = await db.all("PRAGMA table_info(subscription_plans)");
+    if (subCols.length > 0 && !subCols.some(c => c.name === 'target_audience')) {
+      await db.exec(`ALTER TABLE subscription_plans ADD COLUMN target_audience TEXT DEFAULT 'user'`);
+      console.log(`✅ Auto-migrated: Added target_audience column to subscription_plans`);
+    }
+  } catch (err) {
+    console.error("Migration error:", err);
+  }
 
   // const webinarCols = await db.all("PRAGMA table_info(webinars)");
 
