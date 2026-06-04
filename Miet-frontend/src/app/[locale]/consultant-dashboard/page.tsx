@@ -253,7 +253,8 @@ export default function ConsultantDashboard() {
         : `${getApiUrl('api/products')}`;
 
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
       });
       if (response.ok) {
         const data = await response.json();
@@ -2230,7 +2231,7 @@ const handleProfileUpdate = async () => {
                     {/* Render matching products */}
                     <div style={{ display: 'grid', gap: '16px' }}>
                       {products.filter((p: any) => {
-                        const isOwner = (p.consultant_id && p.consultant_id === consultant?.id) || 
+                        const isOwner = (p.consultant_id && String(p.consultant_id) === String(consultant?.id)) || 
                                         (!p.consultant_id && consultant?.name && (
                                            (p.author && p.author.toLowerCase() === consultant.name.toLowerCase()) || 
                                            (p.instructor_name && p.instructor_name.toLowerCase() === consultant.name.toLowerCase())
@@ -2251,7 +2252,7 @@ const handleProfileUpdate = async () => {
                         </div>
                       ) : (
                         products.filter((p: any) => {
-                          const isOwner = (p.consultant_id && p.consultant_id === consultant?.id) || 
+                          const isOwner = (p.consultant_id && String(p.consultant_id) === String(consultant?.id)) || 
                                           (!p.consultant_id && consultant?.name && (
                                              (p.author && p.author.toLowerCase() === consultant.name.toLowerCase()) || 
                                              (p.instructor_name && p.instructor_name.toLowerCase() === consultant.name.toLowerCase())
