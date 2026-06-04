@@ -7,6 +7,7 @@ import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import RazorpayPayment from '@/components/RazorpayPayment';
 import { getApiUrl } from '@/utils/api';
+import ConsultantOrdersTab from './ConsultantOrdersTab';
 
 interface Consultant {
   id: number;
