@@ -8652,10 +8652,44 @@ app.delete('/api/products/:id', async (req, res) => {
 app.post('/api/products/:id/approve', authenticateToken, requireRole('superadmin'), async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Get product and consultant details to send email
+    const product = await db.get('SELECT p.*, c.email as email, c.name as name FROM products p LEFT JOIN consultants c ON p.consultant_id = c.id WHERE p.id = ?', id);
+    
     await db.run('UPDATE products SET approval_status = "approved" WHERE id = ?', id);
+    
+    if (product && product.email) {
+      const subject = `Your Product has been Approved!`;
+      const htmlContent = `<p>Dear ${product.name},</p><p>Great news! Your product <strong>${product.title || product.name || 'Product'}</strong> has been approved by the admin and is now live on the marketplace.</p>`;
+      await sendEmailNotification(product.email, subject, htmlContent);
+    }
+    
     res.json({ success: true, message: 'Product approved successfully' });
   } catch (err) {
     console.error('Error approving product:', err);
+    res.status(500).json({ success: false, message: 'Database error' });
+  }
+});
+
+// POST /api/products/:id/reject - Reject a product (Admin only)
+app.post('/api/products/:id/reject', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get product and consultant details to send email
+    const product = await db.get('SELECT p.*, c.email as email, c.name as name FROM products p LEFT JOIN consultants c ON p.consultant_id = c.id WHERE p.id = ?', id);
+    
+    await db.run('UPDATE products SET approval_status = "rejected" WHERE id = ?', id);
+    
+    if (product && product.email) {
+      const subject = `Update on your Product Submission`;
+      const htmlContent = `<p>Dear ${product.name},</p><p>We regret to inform you that your product submission <strong>${product.title || product.name || 'Product'}</strong> has been rejected by the admin. Please contact support if you have any questions or to request a review.</p>`;
+      await sendEmailNotification(product.email, subject, htmlContent);
+    }
+    
+    res.json({ success: true, message: 'Product rejected successfully' });
+  } catch (err) {
+    console.error('Error rejecting product:', err);
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });

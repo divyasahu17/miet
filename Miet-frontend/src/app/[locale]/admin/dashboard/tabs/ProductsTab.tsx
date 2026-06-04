@@ -9,6 +9,55 @@ type ProductType = 'Course' | 'E-book' | 'App' | 'Gadget';
 export default function ProductsTab(props: any) {
   const { DataTable, products, productEditId, productForm, setProductForm, setProductEditId, setShowProductModal, showProductModal, setDeleteProductId, setDeleteProductName, setShowDeleteModal, setSuccessMessage, setShowSuccessPopup, setProducts, getApiUrl } = props;
 
+  const [showConsultantModal, setShowConsultantModal] = React.useState(false);
+  const [selectedConsultant, setSelectedConsultant] = React.useState<any>(null);
+
+  const handleViewConsultant = async (consultantId: number) => {
+    try {
+      const token = localStorage.getItem('admin_jwt');
+      const res = await fetch(getApiUrl(`api/consultants/${consultantId}`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedConsultant(data);
+        setShowConsultantModal(true);
+      } else {
+        alert('Failed to load consultant details');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error loading consultant details');
+    }
+  };
+
+  const handleRejectProduct = async (productId: number) => {
+    if (!confirm('Are you sure you want to reject this product?')) return;
+    try {
+      const token = localStorage.getItem('admin_jwt');
+      const res = await fetch(getApiUrl(`api/products/${productId}/reject`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        alert('Product rejected successfully');
+        // Refresh products
+        const refreshRes = await fetch(getApiUrl('api/products?all=true'));
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          setProducts(data.products || data);
+        }
+      } else {
+        alert('Failed to reject product');
+      }
+    } catch (err) {
+      console.error('Error rejecting product:', err);
+      alert('Error rejecting product');
+    }
+  };
+
   const handleApproveProduct = async (productId: number) => {
     if (!confirm('Are you sure you want to approve this product?')) return;
     try {
@@ -183,7 +232,24 @@ export default function ProductsTab(props: any) {
                     key: 'consultant_id',
                     label: 'Added By (Consultant ID)',
                     sortable: true,
-                    render: (value: any, row: any) => row.consultant_id ? `Consultant #${row.consultant_id}` : 'Admin'
+                    render: (value: any, row: any) => row.consultant_id ? (
+                      <button
+                        onClick={() => handleViewConsultant(row.consultant_id)}
+                        style={{
+                          background: 'rgba(102, 126, 234, 0.1)',
+                          color: '#667eea',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '4px 8px',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Consultant #{row.consultant_id}
+                      </button>
+                    ) : 'Admin'
                   },
                   {
                     key: 'status',
@@ -202,28 +268,24 @@ export default function ProductsTab(props: any) {
                         }}>
                           {value || '-'}
                         </span>
-                        {row.approval_status === 'pending' ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 600 }}>PENDING APPROVAL</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {row.approval_status === 'pending' && <span style={{ color: '#d97706', fontSize: '12px', fontWeight: 600 }}>PENDING</span>}
+                          {row.approval_status === 'approved' && <span style={{ color: '#059669', fontSize: '12px', fontWeight: 600 }}>APPROVED</span>}
+                          {row.approval_status === 'rejected' && <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600 }}>REJECTED</span>}
+                          
+                          {row.approval_status !== 'approved' && (
                             <button
                               onClick={() => handleApproveProduct(row.id)}
-                              style={{
-                                background: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '4px 8px',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                              }}
-                            >
-                              Approve
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#059669', fontSize: '12px', fontWeight: 600 }}>APPROVED</span>
-                        )}
+                              style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                            >Approve</button>
+                          )}
+                          {row.approval_status !== 'rejected' && (
+                            <button
+                              onClick={() => handleRejectProduct(row.id)}
+                              style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                            >Reject</button>
+                          )}
+                        </div>
                       </div>
                     )
                   }
@@ -1202,6 +1264,40 @@ export default function ProductsTab(props: any) {
                 </div>
               )}
             </section>
+            
+            {showConsultantModal && selectedConsultant && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+                alignItems: 'center', justifyContent: 'center'
+              }}>
+                <div style={{
+                  background: 'white', borderRadius: '12px', padding: '30px', width: '90%', maxWidth: '500px',
+                  maxHeight: '90vh', overflowY: 'auto', position: 'relative'
+                }}>
+                  <button onClick={() => setShowConsultantModal(false)} style={{
+                    position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer'
+                  }}>×</button>
+                  <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#1f2937', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>Consultant Details</h3>
+                  
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <div><strong style={{ color: '#4b5563' }}>Name:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.name}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>Email:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.email}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>Phone:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.phone || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>Speciality:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.speciality || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>City:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.city || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>Price per Slot:</strong> <span style={{ color: '#111827' }}>₹{selectedConsultant.price_per_slot || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>PAN Number:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.pan_number || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>GST Number:</strong> <span style={{ color: '#111827' }}>{selectedConsultant.gst_number || '-'}</span></div>
+                    <div><strong style={{ color: '#4b5563' }}>Joined:</strong> <span style={{ color: '#111827' }}>{new Date(selectedConsultant.created_at).toLocaleDateString()}</span></div>
+                  </div>
+                  
+                  <div style={{ marginTop: '25px', textAlign: 'right' }}>
+                    <button onClick={() => setShowConsultantModal(false)} style={{ background: '#f3f4f6', color: '#374151', padding: '8px 16px', borderRadius: '6px', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 'bold' }}>Close</button>
+                  </div>
+                </div>
+              </div>
+            )}
           
     </>
   );

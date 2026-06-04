@@ -2278,8 +2278,11 @@ const handleProfileUpdate = async () => {
                               )}
                               <div>
                                 <h4 style={{ fontWeight: '600', color: '#111827', margin: 0, fontSize: '16px' }}>{product.title || product.name}</h4>
-                                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '13px' }}>
-                                  Status: <span style={{ color: product.approval_status === 'approved' ? (product.status === 'active' ? '#10b981' : '#f59e0b') : '#ef4444', fontWeight: '500' }}>{product.approval_status === 'approved' ? (product.status || 'active') : (product.approval_status || 'pending')}</span>
+                                <p style={{ color: '#6b7280', margin: '4px 0 0 0', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  Approval Status: 
+                                  {(!product.approval_status || product.approval_status === 'pending') && <span style={{ background: '#fef3c7', color: '#d97706', padding: '2px 8px', borderRadius: '4px', fontWeight: '600', fontSize: '12px' }}>PENDING</span>}
+                                  {product.approval_status === 'approved' && <span style={{ background: '#dcfce7', color: '#059669', padding: '2px 8px', borderRadius: '4px', fontWeight: '600', fontSize: '12px' }}>APPROVED</span>}
+                                  {product.approval_status === 'rejected' && <span style={{ background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '4px', fontWeight: '600', fontSize: '12px' }}>REJECTED</span>}
                                 </p>
                               </div>
                             </div>
