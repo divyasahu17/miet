@@ -940,7 +940,7 @@ const handleProfileUpdate = async () => {
                 { id: 'webinars', label: 'Webinars', icon: FaVideo },
                 { id: 'availability', label: 'Availability', icon: FaClock },
                 { id: 'subscription', label: consultant?.is_pro ? '⭐ Pro' : 'Subscription', icon: FaCog },
-                { id: 'marketplace', label: 'My Products', icon: FaStore },
+                { id: 'marketplace', label: 'Marketplace', icon: FaStore },
                 { id: 'orders', label: 'Product Orders', icon: FaBoxOpen },
                 { id: 'profile', label: 'Profile', icon: FaUserMd }
               ].map(({ id, label, icon: Icon }) => (
