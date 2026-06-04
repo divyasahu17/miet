@@ -281,6 +281,53 @@ async function setupDatabase() {
 
 
 
+  // --- Admin Settings & Wallet ---
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS admin_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      setting_key TEXT UNIQUE NOT NULL,
+      setting_value TEXT NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Initialize default commission settings if they don't exist
+  const defaultSettings = [
+    ['commission_course', '10', 'Commission percentage for Course products'],
+    ['commission_ebook', '10', 'Commission percentage for E-Book products'],
+    ['commission_gadget', '10', 'Commission percentage for Gadget products'],
+    ['commission_app', '10', 'Commission percentage for App products']
+  ];
+  
+  for (const [key, val, desc] of defaultSettings) {
+    await db.run(
+      'INSERT OR IGNORE INTO admin_settings (setting_key, setting_value, description) VALUES (?, ?, ?)',
+      [key, val, desc]
+    );
+  }
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      consultant_id INTEGER NOT NULL,
+      order_id INTEGER,
+      amount REAL NOT NULL,
+      type TEXT CHECK(type IN ('earning', 'withdrawal', 'adjustment')) NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(consultant_id) REFERENCES consultants(id) ON DELETE CASCADE,
+      FOREIGN KEY(order_id) REFERENCES orders_new(id) ON DELETE SET NULL
+    );
+  `);
+
+  try {
+    await db.exec(`ALTER TABLE consultants ADD COLUMN wallet_balance REAL DEFAULT 0.00;`);
+  } catch (e) {
+    if (!e.message.includes('duplicate column name')) console.error(e);
+  }
+
   // --- Subscription Plans ---
   await db.exec(`
 
@@ -1057,11 +1104,51 @@ async function setupDatabase() {
           ALTER TABLE consultants ADD COLUMN degree_certificates TEXT;
         `);
 
+        try {
+          await db.exec(`ALTER TABLE consultants ADD COLUMN wallet_balance REAL DEFAULT 0.00;`);
+        } catch (e) {
+          if (!e.message.includes('duplicate column name')) console.error(e);
+        }
 
+        await db.exec(`
+          CREATE TABLE IF NOT EXISTS admin_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key TEXT UNIQUE NOT NULL,
+            setting_value TEXT NOT NULL,
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
 
+        // Initialize default commission settings if they don't exist
+        const defaultSettings = [
+          ['commission_course', '10', 'Commission percentage for Course products'],
+          ['commission_ebook', '10', 'Commission percentage for E-Book products'],
+          ['commission_gadget', '10', 'Commission percentage for Gadget products'],
+          ['commission_app', '10', 'Commission percentage for App products']
+        ];
+        
+        for (const [key, val, desc] of defaultSettings) {
+          await db.run(
+            'INSERT OR IGNORE INTO admin_settings (setting_key, setting_value, description) VALUES (?, ?, ?)',
+            [key, val, desc]
+          );
+        }
 
-
-
+        await db.exec(`
+          CREATE TABLE IF NOT EXISTS wallet_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            consultant_id INTEGER NOT NULL,
+            order_id INTEGER,
+            amount REAL NOT NULL,
+            type TEXT CHECK(type IN ('earning', 'withdrawal', 'adjustment')) NOT NULL,
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(consultant_id) REFERENCES consultants(id) ON DELETE CASCADE,
+            FOREIGN KEY(order_id) REFERENCES orders_new(id) ON DELETE SET NULL
+          );
+        `);
 
 
 
@@ -4360,7 +4447,8 @@ app.post('/api/orders', authenticateUser, checkoutLimiter, async (req, res) => {
         productName: product.title || product.name,
         quantity,
         unitPrice: product.price || 0,
-        totalPrice: itemTotal
+        totalPrice: itemTotal,
+        consultantId: product.consultant_id
       });
     }
 
@@ -4399,6 +4487,88 @@ app.post('/api/orders', authenticateUser, checkoutLimiter, async (req, res) => {
     // Get created order with items
     const order = await db.get('SELECT * FROM orders_new WHERE id = ?', orderId);
     const orderItemsData = await db.all('SELECT * FROM order_items_new WHERE order_id = ?', orderId);
+
+    // Apply Marketplace Commission & Update Consultant Wallet
+    try {
+      const settingsResult = await db.all('SELECT setting_key, setting_value FROM admin_settings');
+      const settings = {};
+      settingsResult.forEach(s => settings[s.setting_key] = parseFloat(s.setting_value) || 0);
+
+      for (const item of orderItems) {
+        if (item.consultantId) {
+          // Determine the commission percentage based on product type
+          let commissionKey = 'commission_course'; // default
+          const type = (item.productType || '').toLowerCase();
+          if (type.includes('ebook') || type.includes('e-book')) commissionKey = 'commission_ebook';
+          else if (type.includes('gadget')) commissionKey = 'commission_gadget';
+          else if (type.includes('app')) commissionKey = 'commission_app';
+          
+          const commissionPercent = settings[commissionKey] || 0;
+          const commissionAmount = (item.totalPrice * commissionPercent) / 100;
+          const earningAmount = item.totalPrice - commissionAmount;
+
+          if (earningAmount > 0) {
+            // Update wallet balance
+            await db.run(
+              'UPDATE consultants SET wallet_balance = wallet_balance + ? WHERE id = ?',
+              [earningAmount, item.consultantId]
+            );
+
+            // Record transaction
+            await db.run(
+              `INSERT INTO wallet_transactions (consultant_id, order_id, amount, type, description)
+               VALUES (?, ?, ?, 'earning', ?)`,
+              [
+                item.consultantId, 
+                orderId, 
+                earningAmount, 
+                `Earnings for ${item.productName} (Price: ₹${item.totalPrice}, Commission: ${commissionPercent}%)`
+              ]
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error applying commission/wallet updates:', err);
+      // Not failing the whole order creation if wallet fails, though in prod it should be atomic
+    }
+
+    // Send email notifications
+    try {
+      // 1. Send email to user
+      const user = await db.get('SELECT email, name FROM users WHERE id = ?', userId);
+      if (user && user.email) {
+        const userHtml = `
+          <h2>Order Confirmation</h2>
+          <p>Dear ${user.name || 'User'},</p>
+          <p>Your order <strong>${orderNumber}</strong> has been placed successfully.</p>
+          <p>Total Amount: ₹${totalAmount}</p>
+          <p>Thank you for shopping with us!</p>
+        `;
+        await sendEmailNotification(user.email, `Order Confirmation - \${orderNumber}`, userHtml, userHtml.replace(/<[^>]*>/g, ''));
+      }
+
+      // 2. Send emails to consultants
+      for (const item of orderItems) {
+        if (item.consultantId) {
+          const consultant = await db.get('SELECT email, name FROM consultants WHERE id = ?', item.consultantId);
+          if (consultant && consultant.email) {
+            const consultantHtml = `
+              <h2>New Order Received</h2>
+              <p>Dear ${consultant.name || 'Consultant'},</p>
+              <p>A new order has been placed for your product: <strong>${item.productName}</strong>.</p>
+              <p>Order Number: ${orderNumber}</p>
+              <p>Quantity: ${item.quantity}</p>
+              <p>Please check your dashboard to update the delivery status.</p>
+            `;
+            await sendEmailNotification(consultant.email, `New Order Received - \${item.productName}`, consultantHtml, consultantHtml.replace(/<[^>]*>/g, ''));
+          }
+        }
+      }
+    } catch (emailErr) {
+      console.error('Error sending order emails:', emailErr);
+      // Don't fail the order creation if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -11235,6 +11405,68 @@ app.get('/api/my-webinars', authenticateUser, async (req, res) => {
 
   res.json(data);
 });
+// --- Marketplace Commission & Wallet Endpoints ---
+
+// GET /api/admin/settings - Get all admin settings (Admin only)
+app.get('/api/admin/settings', authenticateToken, async (req, res) => {
+  try {
+    const settings = await db.all('SELECT * FROM admin_settings');
+    res.json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Error fetching admin settings:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// PUT /api/admin/settings - Update an admin setting (Admin only)
+app.put('/api/admin/settings', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { settings } = req.body; // Expecting array of { setting_key, setting_value }
+    if (!Array.isArray(settings)) {
+      return res.status(400).json({ success: false, message: 'Invalid data format' });
+    }
+
+    for (const setting of settings) {
+      await db.run(
+        'UPDATE admin_settings SET setting_value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting_key = ?',
+        [setting.setting_value, setting.setting_key]
+      );
+    }
+    res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /api/consultants/wallet - Get consultant wallet balance and transactions
+app.get('/api/consultants/wallet', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Get consultant record based on user_id
+    const consultant = await db.get('SELECT * FROM consultants WHERE user_id = ?', userId);
+    
+    if (!consultant) {
+      return res.status(404).json({ success: false, message: 'Consultant not found' });
+    }
+
+    const transactions = await db.all(
+      'SELECT * FROM wallet_transactions WHERE consultant_id = ? ORDER BY created_at DESC',
+      consultant.id
+    );
+
+    res.json({
+      success: true,
+      data: {
+        wallet_balance: consultant.wallet_balance || 0,
+        transactions: transactions
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching wallet details:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 
 
@@ -11265,26 +11497,58 @@ app.get('/api/my-webinars', authenticateUser, async (req, res) => {
 
 
 
+// --- Subscription APIs ---
 
+app.get('/api/admin/subscriptions', authenticateToken, async (req, res) => {
+  try {
+    const plans = await db.all('SELECT * FROM subscription_plans ORDER BY created_at DESC');
+    res.json({ success: true, data: plans });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
+app.post('/api/admin/subscriptions', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { plan_name, billing_cycle, target_audience, base_price, description, features_json } = req.body;
+    const plan_key = plan_name.toLowerCase().replace(/\s+/g, '_');
+    
+    const result = await db.run(`
+      INSERT INTO subscription_plans (plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json]);
+    
+    res.json({ success: true, message: 'Plan created successfully', id: result.lastID });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
+app.put('/api/admin/subscriptions/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active } = req.body;
+    const plan_key = plan_name.toLowerCase().replace(/\s+/g, '_');
 
+    await db.run(`
+      UPDATE subscription_plans
+      SET plan_key = ?, plan_name = ?, billing_cycle = ?, target_audience = ?, base_price = ?, description = ?, features_json = ?, is_active = ?
+      WHERE id = ?
+    `, [plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active, req.params.id]);
 
+    res.json({ success: true, message: 'Plan updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- End Gallery & CMS API Endpoints ---
+app.delete('/api/admin/subscriptions/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    await db.run('DELETE FROM subscription_plans WHERE id = ?', req.params.id);
+    res.json({ success: true, message: 'Plan deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // --- Catch-all 404 and error handler for JSON responses ---
 // IMPORTANT: This must be the LAST middleware, after all route definitions

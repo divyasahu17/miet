@@ -182,7 +182,7 @@ export default function ServicesTab(props: any) {
                   justifyContent: 'center',
                 }}>
                   <div style={{ background: '#fff', borderRadius: 12, padding: 32, minWidth: 400, maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 2px 12px #e2e8f0', position: 'relative' }}>
-                    <button onClick={() => setShowServiceProfileModal(false)} style={{ position: 'absolute', top: 12, right: 12, background: '#e2e8f0', border: 'none', borderRadius: 6, padding: '4px 12px', fontWeight: 700, cursor: 'pointer' }}>Close</button>
+                    <button onClick={() => setShowServiceProfileModal(false)} aria-label="Close modal" style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', fontSize: 26, color: '#6b7280', cursor: 'pointer' }}>×</button>
                     <h2 style={{ fontWeight: 700, color: '#22543d', marginBottom: 12 }}>{serviceProfile.name}</h2>
                     <div style={{ marginBottom: 8 }}><b>Type:</b> {serviceProfile.service_type}</div>
                     <div style={{ marginBottom: 8 }}><b>Delivery:</b> {serviceProfile.delivery_mode}</div>

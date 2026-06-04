@@ -565,14 +565,17 @@ export default function ConsultantDetailPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: '#333',
-              marginBottom: '16px'
-            }}>
-              Login Required
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#333',
+                margin: 0
+              }}>
+                Login Required
+              </h2>
+              <button onClick={handleLoginModalClose} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>×</button>
+            </div>
             <p style={{
               fontSize: '16px',
               color: '#666',

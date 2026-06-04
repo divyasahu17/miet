@@ -581,8 +581,14 @@ export default function BlogsPage() {
                 padding: '32px',
                 maxWidth: '400px',
                 textAlign: 'center',
-                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                position: 'relative'
               }}>
+                <button
+                  onClick={() => { setDeleteBlogId(null); setDeleteBlogName(''); }}
+                  aria-label="Close delete modal"
+                  style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', fontSize: 22, color: '#9ca3af', cursor: 'pointer' }}
+                >×</button>
                 <h3 style={{ color: '#dc2626', marginBottom: '16px', fontSize: '20px' }}>Delete Blog</h3>
                 <p style={{ marginBottom: '24px', color: '#374151' }}>
                   Are you sure you want to delete <strong>{deleteBlogName}</strong>? This action cannot be undone.

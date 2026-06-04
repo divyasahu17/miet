@@ -827,14 +827,24 @@ export default function ConsultationsPage() {
               overflow: 'auto',
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)'
             }}>
-              <h2 style={{
-                fontSize: '24px',
-                fontWeight: '600',
-                color: '#333',
-                marginBottom: '8px'
-              }}>
-                Book Consultation with {selectedConsultant.name}
-              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: '600',
+                  color: '#333',
+                  margin: 0
+                }}>
+                  Book Consultation with {selectedConsultant.name}
+                </h2>
+                <button 
+                  onClick={() => {
+                    setShowBookingModal(false);
+                    setSelectedDate(null);
+                    setSelectedSlot(null);
+                  }}
+                  style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}
+                >×</button>
+              </div>
               <p style={{
                 fontSize: '14px',
                 color: '#666',

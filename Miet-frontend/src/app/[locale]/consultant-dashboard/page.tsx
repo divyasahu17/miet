@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUsers, FaChartLine, FaBell, FaCog, FaSignOutAlt, FaPlus, FaEdit, FaTrash, FaEye, FaStore, FaChevronLeft, FaImages, FaGoogle, FaCheck, FaBoxOpen, FaShoppingBag } from 'react-icons/fa';
+import { FaCalendarAlt, FaVideo, FaUserMd, FaClock, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUsers, FaChartLine, FaBell, FaCog, FaSignOutAlt, FaPlus, FaEdit, FaTrash, FaEye, FaStore, FaChevronLeft, FaImages, FaGoogle, FaCheck, FaBoxOpen, FaShoppingBag, FaWallet } from 'react-icons/fa';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import RazorpayPayment from '@/components/RazorpayPayment';
 import { getApiUrl } from '@/utils/api';
 import ConsultantOrdersTab from './ConsultantOrdersTab';
+import WalletTab from './WalletTab';
 
 interface Consultant {
   id: number;
@@ -90,7 +91,7 @@ export default function ConsultantDashboard() {
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'webinars' | 'availability' | 'profile' | 'subscription' | 'marketplace' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'appointments' | 'webinars' | 'availability' | 'profile' | 'subscription' | 'marketplace' | 'orders' | 'wallet'>('overview');
   const [orders, setOrders] = useState<any[]>([]);
   const [showAddAvailability, setShowAddAvailability] = useState(false);
   const [googleOAuthSetup, setGoogleOAuthSetup] = useState(false);
@@ -943,6 +944,7 @@ const handleProfileUpdate = async () => {
                 { id: 'subscription', label: consultant?.is_pro ? '⭐ Pro' : 'Subscription', icon: FaCog },
                 { id: 'marketplace', label: 'Marketplace', icon: FaStore },
                 { id: 'orders', label: 'Product Orders', icon: FaBoxOpen },
+                { id: 'wallet', label: 'Wallet', icon: FaWallet },
                 { id: 'profile', label: 'Profile', icon: FaUserMd }
               ].map(({ id, label, icon: Icon }) => (
                 <button
@@ -1622,14 +1624,17 @@ const handleProfileUpdate = async () => {
                       maxHeight: '90vh',
                       overflow: 'auto'
                     }}>
-                      <h3 style={{
-                        fontSize: '20px',
-                        fontWeight: '600',
-                        color: '#333',
-                        marginBottom: '24px'
-                      }}>
-                        Add Availability
-                      </h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <h3 style={{
+                          fontSize: '20px',
+                          fontWeight: '600',
+                          color: '#333',
+                          margin: 0
+                        }}>
+                          Add Availability
+                        </h3>
+                        <button onClick={() => setShowAddAvailability(false)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>×</button>
+                      </div>
 
                       <div style={{ marginBottom: '16px' }}>
                         <label style={{
@@ -2338,6 +2343,10 @@ const handleProfileUpdate = async () => {
               }} />
             )}
 
+            {activeTab === 'wallet' && (
+              <WalletTab />
+            )}
+
             {activeTab === 'profile' && (
               <div>
                 <h2 style={titleStyle}>My Profile</h2>
@@ -2513,7 +2522,10 @@ const handleProfileUpdate = async () => {
             background: 'white', borderRadius: '16px', padding: '32px',
             maxWidth: '800px', width: '95%', maxHeight: '90vh', overflow: 'auto'
           }}>
-            <h3 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '24px' }}>Schedule New Webinar</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>Schedule New Webinar</h3>
+              <button onClick={() => setShowWebinarModal(false)} style={{ background: 'none', border: 'none', fontSize: '32px', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>×</button>
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
               <div>
@@ -2680,7 +2692,10 @@ const handleProfileUpdate = async () => {
             background: 'white', borderRadius: '16px', padding: '32px',
             maxWidth: '500px', width: '90%'
           }}>
-            <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px' }}>Upload Recording Link</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>Upload Recording Link</h3>
+              <button onClick={() => setShowRecordingModal(false)} style={{ background: 'none', border: 'none', fontSize: '32px', cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>×</button>
+            </div>
             <div style={{ marginBottom: '20px' }}>
               <label style={labelStyle}>Recording URL</label>
               <input 

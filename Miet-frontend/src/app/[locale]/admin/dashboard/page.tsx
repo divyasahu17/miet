@@ -16,6 +16,7 @@ import SubcategoriesTab from './tabs/SubcategoriesTab';
 import DashboardTab from './tabs/DashboardTab';
 import ProfileTab from './tabs/ProfileTab';
 import TeamTab from './tabs/TeamTab';
+import CommissionSettingsTab from './tabs/CommissionSettingsTab';
 
 
 import React, { useEffect, useState, useMemo,useRef } from "react";
@@ -111,7 +112,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [ailmentsExpanded, setAilmentsExpanded] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'team' | 'subscriptions' | 'coupons' | 'profile'>('dashboard');
+  const [activeMenu, setActiveMenu] = useState<'dashboard' | 'categories' | 'subcategories' | 'consultants' | 'users' | 'services' | 'products' | 'orders' | 'blogs' | 'webinars' | 'consultations' | 'gallery' | 'cms' | 'team' | 'subscriptions' | 'coupons' | 'marketplace_settings' | 'profile'>('dashboard');
   const [isClient, setIsClient] = useState(false);
 
   const categoryRef = useRef<HTMLSelectElement | null>(null);
@@ -1000,6 +1001,7 @@ const fetchOrders = async () => {
     { key: 'services', label: 'Services', icon: <FaTags size={20} /> },
     { key: 'products', label: 'Products', icon: <FaList size={20} /> },
     { key: 'orders', label: 'Orders', icon: <FaList size={20} /> },
+    { key: 'marketplace_settings', label: 'Commission Settings', icon: <FaCog size={20} /> },
     { key: 'blogs', label: 'Blogs & Media', icon: <FaList size={20} /> },
     { key: 'webinars', label: 'Webinars', icon: <FaList size={20} /> },
     { key: 'consultations', label: 'Consultations', icon: <FaUserMd size={20} /> },
@@ -4012,6 +4014,10 @@ useEffect(() => {
 
           {activeMenu === 'orders' && (
   <OrdersTab {...tabProps} />
+)}
+
+{activeMenu === 'marketplace_settings' && (
+  <CommissionSettingsTab />
 )}
 
 
