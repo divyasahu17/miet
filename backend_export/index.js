@@ -3589,10 +3589,27 @@ app.post('/api/consultants', authenticateToken, requireRole('superadmin'), async
   const { username, password, name, email, phone, image, description, tagline, location_lat, location_lng, address, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured } = req.body;
   if (!username || !password || !name || !email || !city || city.trim() === '') return res.status(400).json({ error: 'Missing required fields (city is required)' });
   try {
-    // Create user
+    // Check if consultant profile already exists
+    const existingConsultant = await db.get('SELECT id FROM consultants WHERE email = ?', email);
+    if (existingConsultant) {
+      return res.status(400).json({ error: 'A consultant with this email already exists.' });
+    }
+
+    // Check if user already exists in users table (e.g. they registered as a normal user first)
+    let user_id;
+    const existingUser = await db.get('SELECT * FROM users WHERE username = ?', username);
     const hash = await bcrypt.hash(password, 10);
-    const userResult = await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', username, hash, 'consultant');
-    const user_id = userResult.lastID;
+    
+    if (existingUser) {
+      user_id = existingUser.id;
+      // Update their password in case they want to login with this new password as a consultant
+      await db.run('UPDATE users SET password = ? WHERE id = ?', hash, user_id);
+    } else {
+      // Create new user
+      const userResult = await db.run('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', username, hash, 'consultant');
+      user_id = userResult.lastID;
+    }
+    
     // Ensure image path is correct
     let imagePath = image;
     if (imagePath && !imagePath.startsWith('/uploads/')) {
