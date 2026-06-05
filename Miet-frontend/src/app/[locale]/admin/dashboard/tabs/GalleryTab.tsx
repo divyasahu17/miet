@@ -61,7 +61,7 @@ export default function GalleryTab(props: any) {
 
   const getGalleryImageUrl = (img: any) => {
     if (typeof getImageUrl !== 'function') return '';
-    return getImageUrl(img?.image_path || img?.image || img);
+    return getImageUrl(img?.image_path || img?.image || '');
   };
 
   return (
@@ -124,7 +124,7 @@ export default function GalleryTab(props: any) {
                     transition: 'all 0.3s ease'
                   }}>
                     <div style={{ position: 'relative', height: '180px', overflow: 'hidden', background: '#000' }}>
-                      {img.video_embed_url ? (
+                      {(img.video_embed_url && img.video_embed_url !== 'null' && img.video_embed_url !== '') ? (
                         <iframe
                           src={getYouTubeEmbedUrl(img.video_embed_url)}
                           style={{ width: '100%', height: '100%', border: 'none' }}
@@ -256,7 +256,7 @@ export default function GalleryTab(props: any) {
                               }}
                             >Save</button>
                             <button
-                              onClick={() => { setGalleryEditId(null); setGalleryEditForm({}); }}
+                              onClick={() => { setGalleryEditId(null); setGalleryEditForm({}); setGalleryEditImageFile(null); setGalleryEditImagePreview(''); setGalleryEditVideoFile(null); setGalleryEditVideoPreview(''); }}
                               style={{
                                 flex: 1, background: '#6b7280', color: '#fff', border: 'none',
                                 borderRadius: '8px', padding: '8px', fontWeight: 600, cursor: 'pointer'

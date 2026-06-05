@@ -1928,7 +1928,7 @@ useEffect(() => {
       if (galleryEditForm.description !== undefined) formData.append('description', galleryEditForm.description);
       if (galleryEditForm.status) formData.append('status', galleryEditForm.status);
       if (galleryEditForm.display_order !== undefined) formData.append('display_order', String(galleryEditForm.display_order));
-      if (galleryEditForm.video_embed_url !== undefined) formData.append('video_embed_url', galleryEditForm.video_embed_url);
+      if (galleryEditForm.video_embed_url !== undefined) formData.append('video_embed_url', galleryEditForm.video_embed_url === null ? '' : galleryEditForm.video_embed_url);
 
       if (galleryEditImageFile) formData.append('image', galleryEditImageFile);
       if (galleryEditVideoFile) formData.append('video', galleryEditVideoFile);

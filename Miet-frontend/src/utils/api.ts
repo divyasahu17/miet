@@ -24,6 +24,9 @@ export const getApiUrl = (endpoint: string): string => {
 // Get the backend URL for constructing image URLs and other static resources
 // These should always use the backend URL directly
 export const getBackendUrl = (): string => {
+  if (process.env.NODE_ENV === 'production') {
+    return ''; // Always return empty string in production so images use relative paths
+  }
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 };

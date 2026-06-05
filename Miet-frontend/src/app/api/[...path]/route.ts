@@ -5,9 +5,9 @@ const DEFAULT_BACKEND_URL = 'https://miet-backend-production.up.railway.app';
 
 // Remove trailing slash from backend URL
 const getBackendUrl = () => {
-  // Read from env at runtime (works better in serverless functions)
-  const envUrl = process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL;
-  return envUrl.replace(/\/$/, '');
+  // Always use the local Express backend on the same server to avoid infinite proxy loops
+  // when NEXT_PUBLIC_BACKEND_URL is set to the same domain.
+  return 'http://127.0.0.1:4000';
 };
 
 async function proxyRequest(request: NextRequest, path: string[]) {
