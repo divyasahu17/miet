@@ -298,12 +298,30 @@ export default function BlogDetailPage({ params }: { params: any }) {
             {blog.post_type === 'vlog' && blogVideoUrl && (
               <div style={{ marginBottom: '2rem' }}>
                 <div style={{ fontWeight: 700, color: '#1e1b4b', marginBottom: '0.75rem' }}>Vlog Video</div>
-                <video
-                  controls
-                  playsInline
-                  src={blogVideoUrl}
-                  style={{ width: '100%', maxHeight: '520px', borderRadius: '16px', background: '#000' }}
-                />
+                {blogVideoUrl.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/) ? (
+                  <iframe
+                    src={(() => {
+                      let videoId = '';
+                      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                      const match = blogVideoUrl.match(regExp);
+                      if (match && match[2].length === 11) {
+                        videoId = match[2];
+                        return `https://www.youtube.com/embed/${videoId}`;
+                      }
+                      return blogVideoUrl;
+                    })()}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ width: '100%', height: 'clamp(300px, 45vw, 520px)', borderRadius: '16px', background: '#000', border: 'none' }}
+                  />
+                ) : (
+                  <video
+                    controls
+                    playsInline
+                    src={blogVideoUrl}
+                    style={{ width: '100%', maxHeight: '520px', borderRadius: '16px', background: '#000' }}
+                  />
+                )}
               </div>
             )}
 
@@ -332,13 +350,32 @@ export default function BlogDetailPage({ params }: { params: any }) {
                 <div style={{ fontWeight: 700, color: '#1e1b4b', marginBottom: '0.75rem' }}>Inline Videos</div>
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   {inlineVideos.map((asset, index) => (
-                    <video
-                      key={`${asset.url}-${index}`}
-                      controls
-                      playsInline
-                      src={asset.url}
-                      style={{ width: '100%', maxHeight: '420px', borderRadius: '12px', background: '#000' }}
-                    />
+                    asset.url.match(/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/) ? (
+                      <iframe
+                        key={`${asset.url}-${index}`}
+                        src={(() => {
+                          let videoId = '';
+                          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                          const match = asset.url.match(regExp);
+                          if (match && match[2].length === 11) {
+                            videoId = match[2];
+                            return `https://www.youtube.com/embed/${videoId}`;
+                          }
+                          return asset.url;
+                        })()}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{ width: '100%', height: 'clamp(250px, 40vw, 420px)', borderRadius: '12px', background: '#000', border: 'none' }}
+                      />
+                    ) : (
+                      <video
+                        key={`${asset.url}-${index}`}
+                        controls
+                        playsInline
+                        src={asset.url}
+                        style={{ width: '100%', maxHeight: '420px', borderRadius: '12px', background: '#000' }}
+                      />
+                    )
                   ))}
                 </div>
               </div>
