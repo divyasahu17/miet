@@ -246,7 +246,8 @@ export default function ConsultantDashboard() {
       const response = await fetch(`${getApiUrl('api/admin/subscription-plans')}`);
       if (response.ok) {
         const data = await response.json();
-        setPlans(data.data || []);
+        const consultantPlans = (data.data || data || []).filter((p: any) => p.target_audience === 'consultant');
+        setPlans(consultantPlans);
       }
     } catch (error) {
       console.error('Error loading plans:', error);

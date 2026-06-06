@@ -272,6 +272,27 @@ async function setupDatabase() {
     console.error("Migration error:", err);
   }
 
+  // --- Auto Migration for users_auth ---
+  try {
+    const userAuthCols = await db.all("PRAGMA table_info(users_auth)");
+    if (userAuthCols.length > 0) {
+      if (!userAuthCols.some(c => c.name === 'subscription_plan')) {
+        await db.exec(`ALTER TABLE users_auth ADD COLUMN subscription_plan TEXT`);
+        console.log(`✅ Auto-migrated: Added subscription_plan column to users_auth`);
+      }
+      if (!userAuthCols.some(c => c.name === 'subscription_start')) {
+        await db.exec(`ALTER TABLE users_auth ADD COLUMN subscription_start TEXT`);
+        console.log(`✅ Auto-migrated: Added subscription_start column to users_auth`);
+      }
+      if (!userAuthCols.some(c => c.name === 'subscription_end')) {
+        await db.exec(`ALTER TABLE users_auth ADD COLUMN subscription_end TEXT`);
+        console.log(`✅ Auto-migrated: Added subscription_end column to users_auth`);
+      }
+    }
+  } catch (err) {
+    console.error("Migration error for users_auth:", err);
+  }
+
   // const webinarCols = await db.all("PRAGMA table_info(webinars)");
 
   // const addWebinarCol = async (col, type) => {
@@ -2130,7 +2151,7 @@ app.get('/api/auth/profile', authenticateUser, async (req, res) => {
     const userId = req.user.id;
 
     // Get user profile
-    const user = await db.get('SELECT id, first_name, last_name, email, phone, created_at FROM users_auth WHERE id = ?', userId);
+    const user = await db.get('SELECT id, first_name, last_name, email, phone, subscription_plan, subscription_start, subscription_end, created_at FROM users_auth WHERE id = ?', userId);
     console.log('User found in database:', user);
 
     if (!user) {
@@ -5019,54 +5040,73 @@ app.get('/api/payments/:paymentId/status', authenticateUser, async (req, res) =>
 
 app.post('/api/consultants/subscription/verify', authenticateUser, async (req, res) => {
   try {
-    const {
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature,
-      plan
-    } = req.body;
-
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = req.body;
     const crypto = require('crypto');
-
     const body = razorpay_order_id + "|" + razorpay_payment_id;
-
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(body.toString())
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid signature"
-      });
+      return res.status(400).json({ success: false, message: "Invalid signature" });
     }
 
-    // 30 days subscription
+    // Determine plan duration based on naming convention
+    const isYearly = plan && plan.toLowerCase().includes('yearly');
+    const days = isYearly ? 365 : 30;
+
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setDate(startDate.getDate() + 30);
+    endDate.setDate(startDate.getDate() + days);
 
-    await Consultant.findByIdAndUpdate(req.user.id, {
-      is_pro: 1,
-      subscription_plan: plan,
-      subscription_start: startDate,
-      subscription_end: endDate
-    });
+    await db.run(
+      `UPDATE consultants SET is_pro = 1, subscription_plan = ?, subscription_start = ?, subscription_end = ?, payment_id = ? WHERE user_id = ?`,
+      [plan, startDate.toISOString(), endDate.toISOString(), razorpay_payment_id, req.user.id]
+    );
 
-    res.json({
-      success: true,
-      message: "Subscription activated"
-    });
-
+    res.json({ success: true, message: "Subscription activated" });
   } catch (error) {
-    console.error("VERIFY ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Payment verification failed"
-    });
+    console.error('Error verifying consultant subscription:', error);
+    res.status(500).json({ success: false, message: 'Error verifying subscription' });
   }
 });
+
+// --- User Subscription Integration API ---
+app.post('/api/users/subscription/verify', authenticateUser, async (req, res) => {
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = req.body;
+    const crypto = require('crypto');
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: "Invalid signature" });
+    }
+
+    // Determine plan duration
+    const isYearly = plan && plan.toLowerCase().includes('yearly');
+    const days = isYearly ? 365 : 30;
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + days);
+
+    await db.run(
+      `UPDATE users_auth SET subscription_plan = ?, subscription_start = ?, subscription_end = ? WHERE id = ?`,
+      [plan, startDate.toISOString(), endDate.toISOString(), req.user.id]
+    );
+
+    res.json({ success: true, message: "User Subscription activated" });
+  } catch (error) {
+    console.error('Error verifying user subscription:', error);
+    res.status(500).json({ success: false, message: 'Error verifying subscription' });
+  }
+});
+
 
 
 

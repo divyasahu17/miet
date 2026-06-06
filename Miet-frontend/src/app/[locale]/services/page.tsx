@@ -17,10 +17,6 @@ export default function ServicesPage() {
 const text = (_cmsKey: string, fallback: string) => fallback;
 
 
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'standard' | 'premium'>('basic');
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
-
   const [loading, setLoading] = useState(true);
   const [serviceCards, setServiceCards] = useState<any[]>([]);
 
@@ -57,29 +53,7 @@ const text = (_cmsKey: string, fallback: string) => fallback;
     fetchServices();
   }, []);
 
-  const subscriptionPlans = [
-    {
-      key: 'basic',
-      name: 'Basic',
-      monthly: 999,
-      yearly: 9999,
-      features: ['2 sessions/month', 'Access to online resources', 'Email support'],
-    },
-    {
-      key: 'standard',
-      name: 'Standard',
-      monthly: 1799,
-      yearly: 17999,
-      features: ['4 sessions/month', 'Priority booking', 'Progress tracking', 'Chat support'],
-    },
-    {
-      key: 'premium',
-      name: 'Premium',
-      monthly: 2999,
-      yearly: 29999,
-      features: ['8 sessions/month', 'Dedicated consultant', 'Personalized plans', 'Phone & chat support'],
-    },
-  ];
+
 
   return (
     <>
@@ -209,8 +183,8 @@ const text = (_cmsKey: string, fallback: string) => fallback;
                   ))}
                 </ul>
                 {card.isSubscriptions ? (
-                  <button
-                    onClick={() => setShowSubscriptionModal(true)}
+                  <Link
+                    href={`/${locale}/services/subscriptions`}
                     style={{
                       marginTop: 'auto',
                       background: `linear-gradient(135deg, ${card.color} 0%, #764ba2 100%)`,
@@ -228,17 +202,9 @@ const text = (_cmsKey: string, fallback: string) => fallback;
                       width: '100%',
                       textAlign: 'center'
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 12px 35px rgba(99, 102, 241, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(99, 102, 241, 0.3)';
-                    }}
                   >
                     {card.cta}
-                  </button>
+                  </Link>
                 ) : card.isEvents ? (
                   <a
                     href="/events"
@@ -369,37 +335,7 @@ const text = (_cmsKey: string, fallback: string) => fallback;
             }
           `
         }} />
-        {/* Subscription Modal */}
-        {showSubscriptionModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(34,37,77,0.45)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { if (e.target === e.currentTarget) setShowSubscriptionModal(false); }}>
-            <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 32px #5a67d855', padding: '2.5rem 2rem 2rem 2rem', minWidth: 340, maxWidth: 420, position: 'relative', outline: 'none' }}>
-              <button aria-label="Close modal" onClick={() => setShowSubscriptionModal(false)} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 26, color: '#5a67d8', cursor: 'pointer' }}>×</button>
-              <h2 style={{ color: '#22543d', fontWeight: 700, fontSize: 26, marginBottom: 18, textAlign: 'center' }}>Choose Your Subscription</h2>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 18 }}>
-                {subscriptionPlans.map(plan => (
-                  <button key={plan.key} onClick={() => setActiveTab(plan.key as 'basic' | 'standard' | 'premium')} style={{ background: activeTab === plan.key ? '#5a67d8' : '#e2e8f0', color: activeTab === plan.key ? '#fff' : '#22543d', border: 'none', borderRadius: 8, padding: '8px 22px', fontWeight: 700, fontSize: 17, cursor: 'pointer', transition: 'background 0.2s' }}>{plan.name}</button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 18 }}>
-                <button onClick={() => setBilling('monthly')} style={{ background: billing === 'monthly' ? '#22543d' : '#e2e8f0', color: billing === 'monthly' ? '#fff' : '#22543d', border: 'none', borderRadius: 8, padding: '6px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'background 0.2s' }}>Monthly</button>
-                <button onClick={() => setBilling('yearly')} style={{ background: billing === 'yearly' ? '#22543d' : '#e2e8f0', color: billing === 'yearly' ? '#fff' : '#22543d', border: 'none', borderRadius: 8, padding: '6px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', transition: 'background 0.2s' }}>Yearly</button>
-              </div>
-              {subscriptionPlans.filter(p => p.key === activeTab).map(plan => (
-                <div key={plan.key} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32, fontWeight: 800, color: '#22543d', marginBottom: 8 }}>
-                    ₹{billing === 'monthly' ? plan.monthly : plan.yearly} <span style={{ fontSize: 18, color: '#5a67d8', fontWeight: 600 }}>/ {billing}</span>
-                  </div>
-                  <ul style={{ color: '#22543d', fontSize: 16, marginBottom: 18, paddingLeft: 18, textAlign: 'left' }}>
-                    {plan.features.map((f, i) => (
-                      <li key={i} style={{ marginBottom: 6 }}>{f}</li>
-                    ))}
-                  </ul>
-                  <button style={{ background: '#5a67d8', color: '#fff', borderRadius: 8, padding: '12px 32px', fontWeight: 700, fontSize: 18, border: 'none', cursor: 'pointer', marginTop: 8 }}>Proceed to Payment</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
       </main>
       <Footer />
     </>

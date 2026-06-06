@@ -19,6 +19,9 @@ interface User {
   last_name: string;
   email: string;
   phone?: string;
+  subscription_plan?: string;
+  subscription_start?: string;
+  subscription_end?: string;
 }
 
 
@@ -57,10 +60,11 @@ export default function UserDashboard() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [upcomingWebinars, setUpcomingWebinars] = useState<Webinar[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
   const [ordersPage, setOrdersPage] = useState(1);
   const ordersPerPage = 4;
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders' | 'events'>('search');
+  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders' | 'events' | 'subscriptions'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -79,7 +83,7 @@ export default function UserDashboard() {
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'consultations', 'webinars', 'search', 'profile', 'orders', 'events'].includes(tabParam)) {
+    if (tabParam && ['overview', 'consultations', 'webinars', 'search', 'profile', 'orders', 'events', 'subscriptions'].includes(tabParam)) {
       setActiveSection(tabParam as any);
     }
   }, [searchParams]);
@@ -144,6 +148,17 @@ export default function UserDashboard() {
       // Pre-load profile addresses
       await loadProfileAndAddresses();
 
+      // Load User Subscription Plans
+      try {
+        const subRes = await fetch(getApiUrl('api/admin/subscription-plans'));
+        if (subRes.ok) {
+          const allPlans = await subRes.json();
+          setSubscriptionPlans(allPlans.filter((p: any) => p.target_audience === 'user' && p.status === 'active'));
+        }
+      } catch (err) {
+        console.error('Error fetching subscription plans:', err);
+      }
+
       // Check for pending booking redirection
       const pendingConsultantId = localStorage.getItem('pending_consultant_id');
       if (pendingConsultantId) {
@@ -183,6 +198,12 @@ export default function UserDashboard() {
           setFirstName(data.user.first_name || '');
           setLastName(data.user.last_name || '');
           setPhone(data.user.phone || '');
+          setUser((prev: any) => ({
+            ...prev,
+            subscription_plan: data.user.subscription_plan,
+            subscription_start: data.user.subscription_start,
+            subscription_end: data.user.subscription_end,
+          }));
           const userAddress = data.user.addresses && data.user.addresses.length > 0 
             ? data.user.addresses[0] 
             : null;
@@ -670,8 +691,29 @@ export default function UserDashboard() {
                   gap: '8px'
                 }}
               >
-                <FaCalendarAlt />
+            <FaCalendarAlt />
                 My Events
+              </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('subscriptions')}
+                style={{
+                  background: activeSection === 'subscriptions' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'subscriptions' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaCalendarAlt />
+                My Subscriptions
               </button>
             </div>
           </div>
@@ -2576,6 +2618,54 @@ export default function UserDashboard() {
                   })()}
                 </div>
               )}
+
+              {activeSection === 'subscriptions' && (
+                <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>My Subscriptions</h2>
+                  
+                  {user?.subscription_plan && (
+                    <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
+                      <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>Current Active Plan: {user.subscription_plan}</h3>
+                      <p>Valid from {new Date(user.subscription_start || '').toLocaleDateString()} to {new Date(user.subscription_end || '').toLocaleDateString()}</p>
+                    </div>
+                  )}
+
+                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#334155', marginBottom: '20px' }}>Available Plans for You</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    {subscriptionPlans.length === 0 ? (
+                      <p>No subscription plans available right now.</p>
+                    ) : (
+                      subscriptionPlans.map((plan: any) => (
+                        <div key={plan.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
+                          <h4 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '10px' }}>{plan.name}</h4>
+                          <div style={{ fontSize: '28px', fontWeight: '800', color: '#667eea', marginBottom: '20px' }}>
+                            ₹{plan.monthly_price} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#64748b' }}>/ mo</span>
+                          </div>
+                          
+                          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', flex: 1 }}>
+                            {JSON.parse(plan.features_json || '[]').map((f: string, i: number) => (
+                              <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#475569' }}>
+                                <span style={{ color: '#10b981' }}>✓</span> {f}
+                              </li>
+                            ))}
+                          </ul>
+
+                          <button 
+                            onClick={() => {
+                              // We could navigate to a checkout page or start Razorpay logic here
+                              alert('Checkout functionality for User Subscriptions is handled in the frontend Subscription Page.');
+                            }}
+                            style={{ background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
+                          >
+                            Select {plan.name}
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
         </div>
