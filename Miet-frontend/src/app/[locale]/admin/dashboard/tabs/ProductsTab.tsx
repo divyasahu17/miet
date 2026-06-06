@@ -11,6 +11,7 @@ export default function ProductsTab(props: any) {
 
   const [showConsultantModal, setShowConsultantModal] = React.useState(false);
   const [selectedConsultant, setSelectedConsultant] = React.useState<any>(null);
+  const [filterType, setFilterType] = React.useState<string>('');
 
   const handleViewConsultant = async (consultantId: number) => {
     try {
@@ -109,8 +110,8 @@ export default function ProductsTab(props: any) {
                 }}>Manage Products</h2>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
                   <select
-                    value={productForm.type}
-                    onChange={e => setProductForm((f: any) => ({ ...f, type: e.target.value as ProductType }))}
+                    value={filterType}
+                    onChange={e => setFilterType(e.target.value)}
                     style={{
                       padding: '12px 16px',
                       borderRadius: '8px',
@@ -120,6 +121,7 @@ export default function ProductsTab(props: any) {
                       background: '#fff'
                     }}
                   >
+                    <option value="">All Products</option>
                     <option value="Course">Course</option>
                     <option value="E-book">E-book</option>
                     <option value="App">App</option>
@@ -156,9 +158,9 @@ export default function ProductsTab(props: any) {
 
               <DataTable
                 data={Array.isArray(products) ? products.filter((p: any) =>
-                  !productForm.type ||
-                  p.type?.toLowerCase() === productForm.type.toLowerCase() ||
-                  p.product_type?.toLowerCase() === productForm.type.toLowerCase()
+                  !filterType ||
+                  p.type?.toLowerCase() === filterType.toLowerCase() ||
+                  p.product_type?.toLowerCase() === filterType.toLowerCase()
                 ) : []}
                 columns={[
                   {
