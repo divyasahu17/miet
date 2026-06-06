@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getApiUrl } from "@/utils/api";
-import { FaEye, FaEyeSlash, FaLock, FaUser, FaEnvelope, FaPhone, FaUserMd, FaMapMarkerAlt, FaGoogle, FaUpload } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaLock, FaUser, FaEnvelope, FaPhone, FaUserMd, FaMapMarkerAlt, FaUpload } from "react-icons/fa";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 

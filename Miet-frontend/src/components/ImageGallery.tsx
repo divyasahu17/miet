@@ -244,15 +244,6 @@ export default function ImageGallery() {
     );
   }
 
-  // Determine visible slides for the carousel strip
-  const getVisibleIndices = () => {
-    if (images.length <= 3) return images.map((_, i) => i);
-    const indices: number[] = [];
-    for (let i = -1; i <= 1; i++) {
-      indices.push((currentIndex + i + images.length) % images.length);
-    }
-    return indices;
-  };
 
   return (
     <section

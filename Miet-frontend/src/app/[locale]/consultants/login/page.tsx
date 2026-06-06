@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter,useSearchParams } from "next/navigation";
 import { getApiUrl } from "@/utils/api";
-import { FaEye, FaEyeSlash, FaLock, FaUser, FaShieldAlt, FaGoogle } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaLock, FaUser, FaShieldAlt } from "react-icons/fa";
 import GoogleAuth from "@/components/GoogleAuth";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
