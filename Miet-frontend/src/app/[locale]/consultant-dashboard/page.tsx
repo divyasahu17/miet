@@ -243,10 +243,10 @@ export default function ConsultantDashboard() {
 
   const loadPlans = async (token: string) => {
     try {
-      const response = await fetch(`${getApiUrl('api/admin/subscription-plans')}`);
+      const response = await fetch(`${getApiUrl('api/admin/subscriptions')}`);
       if (response.ok) {
         const data = await response.json();
-        const consultantPlans = (data.data || data || []).filter((p: any) => p.target_audience === 'consultant');
+        const consultantPlans = (data.data || data || []).filter((p: any) => p.target_audience === 'consultant' && (p.is_active === 1 || p.is_active === true));
         setPlans(consultantPlans);
       }
     } catch (error) {
@@ -1885,15 +1885,24 @@ const handleProfileUpdate = async () => {
                       Upgrade to a Pro plan to get featured placement, priority bookings, and advanced tools to grow your practice.
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-                      {Object.values(plans.filter(p => p.is_active !== false).reduce((acc, plan) => {
+                      {Object.values(plans.reduce((acc: any, plan: any) => {
                         if (!acc[plan.plan_key]) {
-                          acc[plan.plan_key] = { 
-                            key: plan.plan_key, 
-                            name: plan.plan_name, 
-                            monthly: 0, 
-                            yearly: 0, 
-                            currency: plan.currency || 'INR',
-                            features: plan.description ? plan.description.split('\n').map((s: string) => s.trim()).filter(Boolean) : []
+                          let parsedFeats = [];
+                          try {
+                            const parsed = JSON.parse(plan.features_json || '[]');
+                            if (Array.isArray(parsed)) parsedFeats = parsed;
+                            else parsedFeats = Object.entries(parsed).map(([k,v]) => `${k}: ${v}`);
+                          } catch(e) {
+                             parsedFeats = plan.description ? plan.description.split('\n').map((s: string) => s.trim()).filter(Boolean) : [];
+                          }
+                          
+                          acc[plan.plan_key] = {
+                            key: plan.plan_key,
+                            name: plan.plan_name,
+                            features: parsedFeats,
+                            monthly: 0,
+                            yearly: 0,
+                            currency: plan.currency || 'INR'
                           };
                         }
                         if (plan.billing_cycle === 'monthly') acc[plan.plan_key].monthly = parseInt(plan.base_price, 10);

@@ -12,7 +12,7 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await fetch((process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/api/admin/subscription-plans');
+        const res = await fetch((process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/api/admin/subscriptions');
         if (res.ok) {
           const data = await res.json();
           setPlans(data.data || data || []);
@@ -26,8 +26,8 @@ export default function SubscriptionsPage() {
     fetchPlans();
   }, []);
 
-  const userPlans = plans.filter(p => p.target_audience === 'user' && p.status === 'active');
-  const consultantPlans = plans.filter(p => p.target_audience === 'consultant' && p.status === 'active');
+  const userPlans = plans.filter(p => p.target_audience === 'user' && (p.is_active === 1 || p.is_active === true));
+  const consultantPlans = plans.filter(p => p.target_audience === 'consultant' && (p.is_active === 1 || p.is_active === true));
 
   const plansToShow = activeTab === 'user' ? userPlans : consultantPlans;
 
@@ -95,17 +95,17 @@ export default function SubscriptionsPage() {
                         Most Popular
                       </div>
                     )}
-                    <h3 style={{ fontSize: '1.5rem', color: '#1e293b', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>{plan.name}</h3>
+                    <h3 style={{ fontSize: '1.5rem', color: '#1e293b', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>{plan.plan_name}</h3>
                     <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                      <span style={{ fontSize: '3rem', fontWeight: '900', color: '#1e1b4b' }}>₹{plan.monthly_price}</span>
-                      <span style={{ fontSize: '1rem', color: '#64748b' }}>/ month</span>
+                      <span style={{ fontSize: '3rem', fontWeight: '900', color: '#1e1b4b' }}>₹{plan.base_price}</span>
+                      <span style={{ fontSize: '1rem', color: '#64748b' }}>/ {plan.billing_cycle === 'yearly' ? 'yr' : 'mo'}</span>
                     </div>
                     
                     <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', flex: 1 }}>
-                      {features.map((feature: string, i: number) => (
+                      {Object.entries(features).map(([k, v], i) => (
                         <li key={i} style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem', color: '#475569' }}>
                           <span style={{ color: '#10b981', marginRight: '12px', fontSize: '1.2rem' }}>✓</span>
-                          {feature}
+                          <strong>{k}:</strong> {String(v)}
                         </li>
                       ))}
                     </ul>

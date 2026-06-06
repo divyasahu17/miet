@@ -150,10 +150,10 @@ export default function UserDashboard() {
 
       // Load User Subscription Plans
       try {
-        const subRes = await fetch(getApiUrl('api/admin/subscription-plans'));
+        const subRes = await fetch(getApiUrl('api/admin/subscriptions'));
         if (subRes.ok) {
           const allPlans = await subRes.json();
-          setSubscriptionPlans(allPlans.filter((p: any) => p.target_audience === 'user' && p.status === 'active'));
+          setSubscriptionPlans((allPlans.data || allPlans || []).filter((p: any) => p.target_audience === 'user' && (p.is_active === 1 || p.is_active === true)));
         }
       } catch (err) {
         console.error('Error fetching subscription plans:', err);
@@ -2640,15 +2640,15 @@ export default function UserDashboard() {
                 ) : (
                   subscriptionPlans.map((plan: any) => (
                     <div key={plan.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                      <h4 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '10px' }}>{plan.name}</h4>
+                      <h4 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '10px' }}>{plan.plan_name}</h4>
                       <div style={{ fontSize: '28px', fontWeight: '800', color: '#667eea', marginBottom: '20px' }}>
-                        ₹{plan.monthly_price} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#64748b' }}>/ mo</span>
+                        ₹{plan.base_price} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#64748b' }}>/ {plan.billing_cycle === 'yearly' ? 'yr' : 'mo'}</span>
                       </div>
                       
                       <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', flex: 1 }}>
-                        {JSON.parse(plan.features_json || '[]').map((f: string, i: number) => (
+                        {Object.entries(JSON.parse(plan.features_json || '{}')).map(([k, v], i) => (
                           <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#475569' }}>
-                            <span style={{ color: '#10b981' }}>✓</span> {f}
+                            <span style={{ color: '#10b981' }}>✓</span> <strong>{k}:</strong> {String(v)}
                           </li>
                         ))}
                       </ul>
