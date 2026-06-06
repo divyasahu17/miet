@@ -172,7 +172,7 @@ export default function ConsultantLogin() {
 
 
           {/* Google Login Button */}
-          <button
+          {/* <button
             onClick={handleGoogleLogin}
             disabled={isGoogleAuth || loading}
             style={{
@@ -209,7 +209,7 @@ export default function ConsultantLogin() {
             <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
             <span style={{ padding: "0 16px", color: "#6b7280", fontSize: "14px" }}>OR</span>
             <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
-          </div>
+          </div> */}
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: "24px" }}>
