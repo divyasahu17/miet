@@ -11710,6 +11710,63 @@ app.post('/api/events/register', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/events/checkout', authenticateToken, async (req, res) => {
+  try {
+    const { event_id, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const user_id = req.user.id;
+    
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: 'Missing payment details.' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ error: 'Invalid payment signature.' });
+    }
+
+    const event = await db.get("SELECT * FROM services WHERE id = ? AND service_type = 'event'", event_id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    
+    const existing = await db.get("SELECT * FROM event_registrations WHERE user_id = ? AND event_id = ?", user_id, event_id);
+    if (existing) return res.status(400).json({ error: 'You are already registered for this event.' });
+
+    await db.run(
+      "INSERT INTO event_registrations (user_id, event_id, status, amount) VALUES (?, ?, 'completed', ?)",
+      [user_id, event_id, event.price]
+    );
+
+    const user = await db.get("SELECT * FROM users_auth WHERE id = ?", user_id);
+    
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || 587,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: user.email,
+        subject: `Registration Confirmed: ${event.name}`,
+        html: `<p>Hi ${user.name},</p><p>Thank you for your payment of ₹${event.price}. You have successfully registered for: <strong>${event.name}</strong>.</p><p>Starts at: ${new Date(event.event_start).toLocaleString()}</p>`
+      });
+    } catch(e) {
+      console.error("Failed to send email:", e);
+    }
+
+    res.json({ success: true, message: 'Payment verified and registered successfully!' });
+  } catch (error) {
+    console.error('Error verifying event checkout:', error);
+    res.status(500).json({ error: 'Failed to verify payment and register' });
+  }
+});
+
 app.post('/api/events/:id/remind', authenticateToken, requireRole('superadmin'), async (req, res) => {
   try {
     const { id } = req.params;

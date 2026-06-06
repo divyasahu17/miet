@@ -61,55 +61,87 @@ export default function MyEvents() {
           <p style={{ color: '#64748b', fontSize: '16px' }}>You haven't registered for any events yet.</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-          {events.map((ev, idx) => (
-            <div key={idx} style={{
-              border: '1px solid #e2e8f0', borderRadius: '16px', overflow: 'hidden', position: 'relative'
-            }}>
-              <div style={{ height: '140px', background: '#f1f5f9' }}>
-                {ev.event_image && (
-                  <img src={ev.event_image} alt={ev.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                )}
-              </div>
-              <div style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0 }}>{ev.name}</h3>
-                  <span style={{ background: '#d1fae5', color: '#065f46', padding: '4px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>
-                    REGISTERED
-                  </span>
-                </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ padding: '16px', color: '#475569', fontWeight: 600, fontSize: '14px' }}>Event Details</th>
+                <th style={{ padding: '16px', color: '#475569', fontWeight: 600, fontSize: '14px' }}>Date & Time</th>
+                <th style={{ padding: '16px', color: '#475569', fontWeight: 600, fontSize: '14px' }}>Location / Type</th>
+                <th style={{ padding: '16px', color: '#475569', fontWeight: 600, fontSize: '14px' }}>Status</th>
+                <th style={{ padding: '16px', color: '#475569', fontWeight: 600, fontSize: '14px', textAlign: 'center' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((ev, idx) => {
+                const isPast = new Date(ev.event_start) < new Date();
                 
-                <div style={{ fontSize: '14px', color: '#475569', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <FaCalendarAlt color="#6366f1" /> {new Date(ev.event_start).toLocaleString()}
-                </div>
-                
-                <div style={{ fontSize: '14px', color: '#475569', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {ev.delivery_mode === 'online' ? (
-                    <><FaVideo color="#3b82f6" /> Online Event</>
-                  ) : (
-                    <><FaMapMarkerAlt color="#f59e0b" /> {ev.center_address}</>
-                  )}
-                </div>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  {ev.delivery_mode === 'online' && ev.event_meet_link && (
-                    <a href={ev.event_meet_link} target="_blank" rel="noreferrer" style={{
-                      flex: 1, textAlign: 'center', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
-                      padding: '8px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none'
-                    }}>
-                      Join Link
-                    </a>
-                  )}
-                  <a href={generateGoogleCalendarLink(ev)} target="_blank" rel="noreferrer" style={{
-                    flex: 1, textAlign: 'center', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
-                    padding: '8px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none'
-                  }}>
-                    Add to Calendar
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))}
+                return (
+                  <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.2s', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                    <td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ width: '60px', height: '40px', borderRadius: '8px', overflow: 'hidden', background: '#e2e8f0', flexShrink: 0 }}>
+                          {ev.event_image ? (
+                            <img src={ev.event_image} alt={ev.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><FaCalendarAlt color="#94a3b8" /></div>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '15px' }}>{ev.name}</div>
+                          <div style={{ color: '#64748b', fontSize: '13px', marginTop: '4px' }}>
+                            {Math.round((new Date(ev.event_end).getTime() - new Date(ev.event_start).getTime()) / 3600000)} hour(s)
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', color: '#475569', fontSize: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FaCalendarAlt color="#6366f1" />
+                        {new Date(ev.event_start).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px', color: '#475569', fontSize: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {ev.delivery_mode === 'online' ? (
+                          <><FaVideo color="#3b82f6" /> Online</>
+                        ) : (
+                          <><FaMapMarkerAlt color="#f59e0b" /> {ev.center_address}</>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      {isPast ? (
+                        <span style={{ background: '#fef2f2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>COMPLETED</span>
+                      ) : (
+                        <span style={{ background: '#d1fae5', color: '#059669', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>UPCOMING</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexDirection: 'column' }}>
+                        {!isPast && ev.delivery_mode === 'online' && ev.event_meet_link && (
+                          <a href={ev.event_meet_link} target="_blank" rel="noreferrer" style={{
+                            background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6',
+                            padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, textDecoration: 'none'
+                          }}>
+                            Join Online
+                          </a>
+                        )}
+                        {!isPast && (
+                          <a href={generateGoogleCalendarLink(ev)} target="_blank" rel="noreferrer" style={{
+                            background: 'rgba(16, 185, 129, 0.1)', color: '#10b981',
+                            padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, textDecoration: 'none'
+                          }}>
+                            Add to Calendar
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
