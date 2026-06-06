@@ -254,7 +254,7 @@ export default function ServicesCmsTab() {
                   padding: '24px',
                   boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
                   border: '1px solid #f3f4f6',
-                  borderTop: \`6px solid \${card.button_color || '#e2e8f0'}\`,
+                  borderTop: `6px solid ${card.button_color || '#e2e8f0'}`,
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative'
