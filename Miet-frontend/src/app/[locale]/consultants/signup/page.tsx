@@ -175,7 +175,7 @@ export default function ConsultantSignup() {
           </p>
 
           {/* Google Signup */}
-          <button
+          {/* <button
             onClick={handleGoogleSignup}
             style={{
               width: "100%",
@@ -204,7 +204,7 @@ export default function ConsultantSignup() {
             <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
             <span style={{ padding: "0 16px", color: "#6b7280", fontSize: "14px" }}>OR</span>
             <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
-          </div>
+          </div> */}
 
           {/* Step Indicator */}
           <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginBottom: "32px" }}>
