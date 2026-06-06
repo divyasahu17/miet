@@ -129,6 +129,9 @@ export default function UserDashboard() {
 
       // Get Supabase access token for API calls
       const token = session.access_token;
+      
+      // Store token globally so other pages know we are logged in
+      localStorage.setItem('user_jwt', token);
 
       // Load user's consultations
       await loadConsultations(token);

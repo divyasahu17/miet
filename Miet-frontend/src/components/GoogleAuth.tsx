@@ -134,6 +134,7 @@ export const GoogleAuth: React.FC<GoogleAuthProps> = ({ onLogin, onLogout, child
       }
 
       setUser(null);
+      localStorage.removeItem('user_jwt');
       onLogout?.();
       addNotification({
         type: 'success',
