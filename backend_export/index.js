@@ -611,6 +611,18 @@ async function setupDatabase() {
       FOREIGN KEY(service_id) REFERENCES services(id),
       FOREIGN KEY(consultant_id) REFERENCES consultants(id)
     );
+    CREATE TABLE IF NOT EXISTS event_registrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      event_id INTEGER NOT NULL,
+      razorpay_order_id TEXT,
+      razorpay_payment_id TEXT,
+      amount REAL,
+      status TEXT DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users_auth(id),
+      FOREIGN KEY(event_id) REFERENCES services(id)
+    );
   `);
 
   // Seed admin if not exists
@@ -3185,7 +3197,11 @@ app.get('/api/consultants/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Consultant profile not found' });
     }
 
-    res.json(consultant);
+    const user = await db.get('SELECT password FROM users WHERE id = ?', consultant.user_id);
+    const needs_password = user && user.password === 'google_oauth_no_password';
+    const needs_profile_update = !consultant.city || !consultant.phone || !consultant.pan_number || !consultant.gst_number || !consultant.price_per_slot;
+
+    res.json({ ...consultant, needs_password, needs_profile_update });
 
   } catch (error) {
     console.error('Error fetching consultant profile:', error);
@@ -3195,6 +3211,34 @@ app.get('/api/consultants/profile', authenticateToken, async (req, res) => {
 
 
 
+
+app.post('/api/consultants/set-password', authenticateToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    const consultant = await db.get(
+      'SELECT user_id FROM consultants WHERE id = ?',
+      [req.user.consultantId]
+    );
+
+    if (!consultant) return res.status(404).json({ error: 'Consultant not found' });
+
+    const password_hash = await bcrypt.hash(password, 10);
+    
+    await db.run(
+      'UPDATE users SET password = ? WHERE id = ?',
+      [password_hash, consultant.user_id]
+    );
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Get consultant appointments
 app.get('/api/consultants/appointments', authenticateToken, async (req, res) => {
@@ -11593,6 +11637,140 @@ app.delete('/api/admin/subscriptions/:id', authenticateToken, requireRole('super
 
 // --- Catch-all 404 and error handler for JSON responses ---
 // IMPORTANT: This must be the LAST middleware, after all route definitions
+// ==== ADVANCED EVENTS API ROUTES ==== //
+
+app.get('/api/events/public', async (req, res) => {
+  try {
+    const events = await db.all("SELECT * FROM services WHERE service_type = 'event'");
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching public events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+app.get('/api/events/:id/attendees', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const attendees = await db.all(`
+      SELECT er.id, u.name, u.email, er.status, er.created_at
+      FROM event_registrations er
+      JOIN users_auth u ON er.user_id = u.id
+      WHERE er.event_id = ?
+    `, id);
+    res.json({ attendees });
+  } catch (error) {
+    console.error('Error fetching event attendees:', error);
+    res.status(500).json({ error: 'Failed to fetch attendees' });
+  }
+});
+
+app.post('/api/events/register', authenticateToken, async (req, res) => {
+  try {
+    const { event_id } = req.body;
+    const user_id = req.user.id;
+    
+    const event = await db.get("SELECT * FROM services WHERE id = ? AND service_type = 'event'", event_id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (event.price > 0) return res.status(400).json({ error: 'This is a paid event. Please use checkout.' });
+    
+    const existing = await db.get("SELECT * FROM event_registrations WHERE user_id = ? AND event_id = ?", user_id, event_id);
+    if (existing) return res.status(400).json({ error: 'You are already registered for this event.' });
+
+    await db.run(
+      "INSERT INTO event_registrations (user_id, event_id, status, amount) VALUES (?, ?, 'completed', 0)",
+      [user_id, event_id]
+    );
+
+    const user = await db.get("SELECT * FROM users_auth WHERE id = ?", user_id);
+    
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || 587,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: user.email,
+        subject: `Registration Confirmed: ${event.name}`,
+        html: `<p>Hi ${user.name},</p><p>You have successfully registered for: <strong>${event.name}</strong>.</p><p>Starts at: ${new Date(event.event_start).toLocaleString()}</p>`
+      });
+    } catch(e) {
+      console.error("Failed to send email:", e);
+    }
+
+    res.json({ success: true, message: 'Registered successfully!' });
+  } catch (error) {
+    console.error('Error registering:', error);
+    res.status(500).json({ error: 'Failed to register' });
+  }
+});
+
+app.post('/api/events/:id/remind', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await db.get("SELECT * FROM services WHERE id = ? AND service_type = 'event'", id);
+    if (!event) return res.status(404).json({ error: 'Event not found' });
+
+    const attendees = await db.all(`
+      SELECT u.name, u.email 
+      FROM event_registrations er
+      JOIN users_auth u ON er.user_id = u.id
+      WHERE er.event_id = ? AND er.status = 'completed'
+    `, id);
+
+    setImmediate(async () => {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: process.env.SMTP_PORT || 587,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+        
+        for (const attendee of attendees) {
+          await transporter.sendMail({
+            from: process.env.SMTP_USER,
+            to: attendee.email,
+            subject: `Reminder: Upcoming Event - ${event.name}`,
+            html: `<p>Hi ${attendee.name},</p><p>Reminder for your upcoming event: <strong>${event.name}</strong>.</p><p>Starts at: ${new Date(event.event_start).toLocaleString()}</p>`
+          });
+        }
+      } catch (err) {
+        console.error('Background job failed:', err);
+      }
+    });
+
+    res.json({ success: true, message: `Reminders queued for ${attendees.length} attendees.` });
+  } catch (error) {
+    console.error('Error triggering reminders:', error);
+    res.status(500).json({ error: 'Failed to trigger reminders' });
+  }
+});
+
+app.get('/api/user/events', authenticateToken, async (req, res) => {
+  try {
+    const user_id = req.user.id;
+    const events = await db.all(`
+      SELECT s.*, er.status as registration_status, er.created_at as registered_at
+      FROM event_registrations er
+      JOIN services s ON er.event_id = s.id
+      WHERE er.user_id = ? AND s.service_type = 'event'
+      ORDER BY s.event_start ASC
+    `, user_id);
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching user events:', error);
+    res.status(500).json({ error: 'Failed to fetch user events' });
+  }
+});
+
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not found 090' });
 });

@@ -3,8 +3,16 @@
 import React from 'react';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
+import { useCmsContent, cmsOrT } from '@/hooks/useCmsContent';
 
 export default function TermsPage() {
+  const { content: cmsContent } = useCmsContent('terms');
+  
+  const defaultTitle = "Terms & Conditions";
+  const defaultBody = "<p>Please update these terms and conditions in the Admin Dashboard -> CMS pages.</p>";
+
+  const title = cmsOrT(cmsContent, 'content', 'title', defaultTitle);
+  const body = cmsOrT(cmsContent, 'content', 'body', defaultBody);
   return (
     <>
       <TopBar />
@@ -31,138 +39,14 @@ export default function TermsPage() {
               color: '#1e1b4b',
               marginBottom: '1rem',
             }}>
-              Terms & Conditions
+              {title}
             </h1>
-            <p style={{
-              fontSize: '1.1rem',
-              color: '#4b5563',
-              marginBottom: '2rem',
-              lineHeight: '1.6',
-            }}>
-              Welcome to MIET Life. By accessing our website, you agree to our terms.
-            </p>
 
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                User Responsibilities
-              </h2>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Provide accurate information during signup or transactions.</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Misuse of services may result in account suspension.</span>
-                </li>
-              </ul>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Payments
-              </h2>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>All transactions are securely processed via Razorpay.</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Users are responsible for valid payment information.</span>
-                </li>
-              </ul>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Liability
-              </h2>
-              <p style={{
-                color: '#4b5563',
-                fontSize: '1rem',
-                lineHeight: '1.6',
-              }}>
-                MIET Life is not liable for any direct or indirect losses.
-              </p>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Governing Law
-              </h2>
-              <p style={{
-                color: '#4b5563',
-                fontSize: '1rem',
-                lineHeight: '1.6',
-              }}>
-                These terms are governed by the laws of India.
-              </p>
-            </section>
+            <div 
+              className="cms-content"
+              style={{ color: '#4b5563', lineHeight: '1.6', fontSize: '1rem' }}
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
           </div>
         </div>
       </main>

@@ -11,6 +11,10 @@ import ProgrammesTab from './ProgrammesTab';
 import OverviewTab from './OverviewTab';
 import FounderTab from './FounderTab';
 import VisionTab from './VisionTab';
+import PrivacyTab from './PrivacyTab';
+import TermsTab from './TermsTab';
+import ContactTab from './ContactTab';
+import EventsTab from './EventsTab';
 
 export default function CmsTab(props: any) {
   const {
@@ -208,6 +212,14 @@ export default function CmsTab(props: any) {
             <FounderTab />
           ) : activePage === 'about_vision' ? (
             <VisionTab />
+          ) : activePage === 'privacy' ? (
+            <PrivacyTab />
+          ) : activePage === 'terms' ? (
+            <TermsTab />
+          ) : activePage === 'contact' ? (
+            <ContactTab />
+          ) : activePage === 'events' ? (
+            <EventsTab />
           ) : (
             <>
               {/* Search bar inside selected page */}

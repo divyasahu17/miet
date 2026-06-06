@@ -26,6 +26,8 @@ interface Consultant {
   subscription_start?: string;
   subscription_end?: string;
   promoted_by_admin?: boolean;
+  needs_password?: boolean;
+  needs_profile_update?: boolean;
 }
 
 interface Appointment {
@@ -132,7 +134,8 @@ export default function ConsultantDashboard() {
     description: '',
     pan_number: '',
     gst_number: '',
-    price_per_slot: ''
+    price_per_slot: '',
+    password: ''
   });
 
   const [showWebinarModal, setShowWebinarModal] = useState(false);
@@ -178,6 +181,9 @@ export default function ConsultantDashboard() {
     try {
       // Load consultant profile
       const profileData = await loadConsultantProfile(token);
+      if (profileData && (profileData.needs_password || profileData.needs_profile_update)) {
+        setActiveTab('profile');
+      }
       // Load appointments
       await loadAppointments(token);
       // Load webinars
@@ -285,7 +291,8 @@ export default function ConsultantDashboard() {
           description: data.description || '',
           pan_number: data.pan_number || '',
           gst_number: data.gst_number || '',
-          price_per_slot: data.price_per_slot || ''
+          price_per_slot: data.price_per_slot || '',
+          password: ''
         });
         console.log("ok Next");
         console.log(data);
@@ -660,7 +667,20 @@ const handleProfileUpdate = async () => {
 
     const data = await res.json();
 
-    if (data.success) {
+    let passwordUpdated = true;
+    if (consultant?.needs_password && formData.password) {
+      const pwRes = await fetch(getApiUrl('api/consultants/set-password'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ password: formData.password })
+      });
+      if (!pwRes.ok) passwordUpdated = false;
+    }
+
+    if (data.success && passwordUpdated) {
       alert('Profile updated successfully ✅');
       await loadConsultantProfile(token!);
     } else {
@@ -2351,6 +2371,13 @@ const handleProfileUpdate = async () => {
               <div>
                 <h2 style={titleStyle}>My Profile</h2>
 
+                {(consultant?.needs_password || consultant?.needs_profile_update) && (
+                  <div style={{ padding: '16px', background: '#fff3cd', color: '#856404', borderRadius: '8px', marginBottom: '20px' }}>
+                    <strong>Profile Update Required:</strong> Please complete your profile information below.
+                    {consultant?.needs_password && " You also need to set a password for your account."}
+                  </div>
+                )}
+
                 <div style={gridStyle}>
 
                   {/* Name */}
@@ -2372,6 +2399,20 @@ const handleProfileUpdate = async () => {
                       style={{ ...inputStyle, background: '#f3f4f6', cursor: 'not-allowed' }}
                     />
                   </div>
+
+                  {consultant?.needs_password && (
+                    <div>
+                      <label style={labelStyle}>Set Password</label>
+                      <input
+                        type="password"
+                        placeholder="Enter new password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        style={inputStyle}
+                        required
+                      />
+                    </div>
+                  )}
 
                   {/* Phone */}
                   <div>

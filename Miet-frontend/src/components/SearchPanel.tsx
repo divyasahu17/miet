@@ -21,6 +21,9 @@ type Consultant = {
   phone?: string;
   category_ids?: number[] | string[];
   description?: string; // Added for InfoWindow
+  tagline?: string;
+  category?: string;
+  subcategory?: string;
 };
 
 const MODES = ['All', 'Online', 'Offline'];
@@ -260,12 +263,16 @@ export default function SearchPanel() {
     fetchConsultants();
   }, []);
 
-  // Filter consultants by search and mode
   let filteredConsultants = consultants.filter((c) => {
+    const searchLower = search.toLowerCase();
     const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.expertise?.toLowerCase().includes(search.toLowerCase()) ||
-      c.city?.toLowerCase().includes(search.toLowerCase());
+      c.name.toLowerCase().includes(searchLower) ||
+      c.expertise?.toLowerCase().includes(searchLower) ||
+      c.city?.toLowerCase().includes(searchLower) ||
+      c.speciality?.toLowerCase().includes(searchLower) ||
+      c.tagline?.toLowerCase().includes(searchLower) ||
+      c.category?.toLowerCase().includes(searchLower) ||
+      c.subcategory?.toLowerCase().includes(searchLower);
 
     // Filter by mode - check both mode and status fields
     let matchesMode = true;

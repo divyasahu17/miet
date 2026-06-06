@@ -310,8 +310,8 @@ export default function ContactPage() {
                   fontWeight: '500'
                 }}>
                   <b style={{ color: '#1e1b4b' }}>Email:</b>{' '}
-                  <a href="mailto:miet.life@gmail.com" style={{ color: '#6366f1', textDecoration: 'none' }}>
-                    miet.life@gmail.com
+                  <a href={`mailto:${text('email')}`} style={{ color: '#6366f1', textDecoration: 'none' }}>
+                    {text('email') !== 'email' ? text('email') : 'miet.life@gmail.com'}
                   </a>
                 </div>
                 <div style={{
@@ -321,8 +321,8 @@ export default function ContactPage() {
                   fontWeight: '500'
                 }}>
                   <b style={{ color: '#1e1b4b' }}>Phone:</b>{' '}
-                  <a href="tel:+919319027664" style={{ color: '#6366f1', textDecoration: 'none' }}>
-                    +91-9319027664
+                  <a href={`tel:${text('phone')}`} style={{ color: '#6366f1', textDecoration: 'none' }}>
+                    {text('phone') !== 'phone' ? text('phone') : '+91-9319027664'}
                   </a>
                 </div>
                 <div style={{
@@ -331,7 +331,7 @@ export default function ContactPage() {
                   fontWeight: '500',
                   lineHeight: '1.6'
                 }}>
-                  <b style={{ color: '#1e1b4b' }}>Address:</b> 214, Tower A, Spazedge, Sector 47, Gurgaon, Haryana - 122018
+                  <b style={{ color: '#1e1b4b' }}>Address:</b> {text('address') !== 'address' ? text('address') : '214, Tower A, Spazedge, Sector 47, Gurgaon, Haryana - 122018'}
                 </div>
               </div>
             </div>
@@ -359,7 +359,7 @@ export default function ContactPage() {
               </h3>
               <iframe
                 title="MieT Location Map"
-                src="https://maps.google.com/maps?q=214+Tower+A+Spazedge+Sector+47+Gurgaon+Haryana+122018&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                src={text('map_url') !== 'map_url' ? text('map_url') : "https://maps.google.com/maps?q=214+Tower+A+Spazedge+Sector+47+Gurgaon+Haryana+122018&t=&z=15&ie=UTF8&iwloc=&output=embed"}
                 width="100%"
                 height="450"
                 style={{

@@ -3,8 +3,17 @@
 import React from 'react';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
+import { useCmsContent, cmsOrT } from '@/hooks/useCmsContent';
 
 export default function PrivacyPage() {
+  const { content: cmsContent } = useCmsContent('privacy');
+  
+  // Provide sensible defaults just in case CMS is completely empty
+  const defaultTitle = "Privacy Policy";
+  const defaultBody = "<p>Please update this privacy policy in the Admin Dashboard -> CMS pages.</p>";
+
+  const title = cmsOrT(cmsContent, 'content', 'title', defaultTitle);
+  const body = cmsOrT(cmsContent, 'content', 'body', defaultBody);
   return (
     <>
       <TopBar />
@@ -31,170 +40,14 @@ export default function PrivacyPage() {
               color: '#1e1b4b',
               marginBottom: '1rem',
             }}>
-              Privacy Policy
+              {title}
             </h1>
 
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Information We Collect
-              </h2>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Name, email, phone number</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Payment details (processed securely by Razorpay)</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>Device and usage information</span>
-                </li>
-              </ul>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                How We Use Your Information
-              </h2>
-              <ul style={{
-                listStyle: 'none',
-                padding: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>To process orders and payments</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>To send service updates</span>
-                </li>
-                <li style={{
-                  display: 'flex',
-                  gap: '0.75rem',
-                  color: '#4b5563',
-                  fontSize: '1rem',
-                  lineHeight: '1.6',
-                }}>
-                  <span style={{ color: '#6366f1', fontWeight: '700' }}>•</span>
-                  <span>To improve our platform</span>
-                </li>
-              </ul>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Data Security
-              </h2>
-              <p style={{
-                color: '#4b5563',
-                fontSize: '1rem',
-                lineHeight: '1.6',
-              }}>
-                We follow industry-standard encryption and security practices.
-              </p>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Cookies
-              </h2>
-              <p style={{
-                color: '#4b5563',
-                fontSize: '1rem',
-                lineHeight: '1.6',
-              }}>
-                We may use cookies to enhance user experience.
-              </p>
-            </section>
-
-            <section style={{ marginBottom: '2.5rem' }}>
-              <h2 style={{
-                fontSize: '1.5rem',
-                fontWeight: '700',
-                color: '#1e1b4b',
-                marginBottom: '1rem',
-                paddingBottom: '0.5rem',
-                borderBottom: '2px solid #6366f1',
-              }}>
-                Your Rights
-              </h2>
-              <p style={{
-                color: '#4b5563',
-                fontSize: '1rem',
-                lineHeight: '1.6',
-              }}>
-                You can request modification or deletion of your data anytime.
-              </p>
-            </section>
+            <div 
+              className="cms-content"
+              style={{ color: '#4b5563', lineHeight: '1.6', fontSize: '1rem' }}
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
           </div>
         </div>
       </main>

@@ -11,6 +11,7 @@ import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import SearchPanel from '@/components/SearchPanel';
 import { useLocale } from 'next-intl';
+import MyEvents from './MyEvents';
 
 interface User {
   id: number;
@@ -59,7 +60,7 @@ export default function UserDashboard() {
   const [ordersPage, setOrdersPage] = useState(1);
   const ordersPerPage = 4;
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders'>('search');
+  const [activeSection, setActiveSection] = useState<'overview' | 'consultations' | 'webinars' | 'search' | 'profile' | 'orders' | 'events'>('search');
   const [profileLoading, setProfileLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -632,6 +633,27 @@ export default function UserDashboard() {
                 <FaShoppingCart />
                 My Orders
               </button>
+              <span style={{ color: '#d1d5db', fontSize: '18px' }}>|</span>
+              <button
+                onClick={() => setActiveSection('events')}
+                style={{
+                  background: activeSection === 'events' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                  color: activeSection === 'events' ? 'white' : '#666',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <FaCalendarAlt />
+                My Events
+              </button>
             </div>
           </div>
 
@@ -639,6 +661,11 @@ export default function UserDashboard() {
           {activeSection === 'search' && (
             <div style={{ marginBottom: '32px' }}>
               <SearchPanel />
+            </div>
+          )}
+          {activeSection === 'events' && (
+            <div style={{ marginBottom: '32px' }}>
+              <MyEvents />
             </div>
           )}
           {activeSection === 'overview' && (
