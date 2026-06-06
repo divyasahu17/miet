@@ -11752,7 +11752,7 @@ app.get('/api/consultants/wallet', authenticateToken, async (req, res) => {
 
 // --- Subscription APIs ---
 
-app.get('/api/admin/subscriptions', authenticateToken, async (req, res) => {
+app.get('/api/admin/subscriptions', async (req, res) => {
   try {
     const plans = await db.all('SELECT * FROM subscription_plans ORDER BY created_at DESC');
     res.json({ success: true, data: plans });
