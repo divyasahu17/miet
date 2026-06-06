@@ -3928,6 +3928,31 @@ app.get('/api/services', authenticateToken, requireRole('superadmin'), async (re
   const services = await db.all('SELECT * FROM services ORDER BY created_at DESC');
   res.json(services);
 });
+
+// Get service by id publicly
+app.get('/api/services/public/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const service = await db.get('SELECT * FROM services WHERE id = ?', id);
+    if (!service) return res.status(404).json({ error: 'Not found' });
+    
+    // Only return basic safe information
+    res.json({
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      service_type: service.service_type,
+      price: service.price,
+      event_start: service.event_start,
+      event_end: service.event_end,
+      delivery_mode: service.delivery_mode,
+      center_address: service.center_address
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get service by id (with consultants, categories, subcategories, suggestions)
 app.get('/api/services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
   const { id } = req.params;

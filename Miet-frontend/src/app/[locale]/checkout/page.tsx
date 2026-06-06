@@ -38,7 +38,7 @@ export default function CheckoutPage() {
 
   const fetchServiceDetails = async () => {
     try {
-      const res = await fetch(getApiUrl(`api/services/${serviceId}`));
+      const res = await fetch(getApiUrl(`api/services/public/${serviceId}`));
       if (res.ok) {
         const data = await res.json();
         setService(data);
