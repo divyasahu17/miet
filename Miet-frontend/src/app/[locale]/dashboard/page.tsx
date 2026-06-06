@@ -2619,55 +2619,56 @@ export default function UserDashboard() {
                 </div>
               )}
 
-              {activeSection === 'subscriptions' && (
-                <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                  <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>My Subscriptions</h2>
-                  
-                  {user?.subscription_plan && (
-                    <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
-                      <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>Current Active Plan: {user.subscription_plan}</h3>
-                      <p>Valid from {new Date(user.subscription_start || '').toLocaleDateString()} to {new Date(user.subscription_end || '').toLocaleDateString()}</p>
-                    </div>
-                  )}
+            </div>
+          )}
 
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#334155', marginBottom: '20px' }}>Available Plans for You</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                    {subscriptionPlans.length === 0 ? (
-                      <p>No subscription plans available right now.</p>
-                    ) : (
-                      subscriptionPlans.map((plan: any) => (
-                        <div key={plan.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                          <h4 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '10px' }}>{plan.name}</h4>
-                          <div style={{ fontSize: '28px', fontWeight: '800', color: '#667eea', marginBottom: '20px' }}>
-                            ₹{plan.monthly_price} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#64748b' }}>/ mo</span>
-                          </div>
-                          
-                          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', flex: 1 }}>
-                            {JSON.parse(plan.features_json || '[]').map((f: string, i: number) => (
-                              <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#475569' }}>
-                                <span style={{ color: '#10b981' }}>✓</span> {f}
-                              </li>
-                            ))}
-                          </ul>
-
-                          <button 
-                            onClick={() => {
-                              // We could navigate to a checkout page or start Razorpay logic here
-                              alert('Checkout functionality for User Subscriptions is handled in the frontend Subscription Page.');
-                            }}
-                            style={{ background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
-                          >
-                            Select {plan.name}
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
+          {activeSection === 'subscriptions' && (
+            <div style={{ background: 'white', borderRadius: '16px', padding: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', marginBottom: '20px' }}>My Subscriptions</h2>
+              
+              {user?.subscription_plan && (
+                <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', borderRadius: '12px', padding: '20px', marginBottom: '30px' }}>
+                  <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>Current Active Plan: {user.subscription_plan}</h3>
+                  <p>Valid from {new Date(user.subscription_start || '').toLocaleDateString()} to {new Date(user.subscription_end || '').toLocaleDateString()}</p>
                 </div>
               )}
 
+              <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#334155', marginBottom: '20px' }}>Available Plans for You</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                {subscriptionPlans.length === 0 ? (
+                  <p>No subscription plans available right now.</p>
+                ) : (
+                  subscriptionPlans.map((plan: any) => (
+                    <div key={plan.id} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', marginBottom: '10px' }}>{plan.name}</h4>
+                      <div style={{ fontSize: '28px', fontWeight: '800', color: '#667eea', marginBottom: '20px' }}>
+                        ₹{plan.monthly_price} <span style={{ fontSize: '16px', fontWeight: 'normal', color: '#64748b' }}>/ mo</span>
+                      </div>
+                      
+                      <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', flex: 1 }}>
+                        {JSON.parse(plan.features_json || '[]').map((f: string, i: number) => (
+                          <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#475569' }}>
+                            <span style={{ color: '#10b981' }}>✓</span> {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      <button 
+                        onClick={() => {
+                          // We could navigate to a checkout page or start Razorpay logic here
+                          alert('Checkout functionality for User Subscriptions is handled in the frontend Subscription Page.');
+                        }}
+                        style={{ background: '#667eea', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
+                      >
+                        Select {plan.name}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
+
         </div>
       </div>
       <Footer />

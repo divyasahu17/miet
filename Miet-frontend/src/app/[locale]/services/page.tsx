@@ -3,13 +3,14 @@ import React, { useState, useEffect } from "react";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useCmsContent, cmsOrT } from '@/hooks/useCmsContent';
 
 const SECTION = 'ServicesPage';
 
 export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
+  const locale = useLocale();
 
 
   // const { content: cmsContent } = useCmsContent('services');
