@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import GoogleAuth from '@/components/GoogleAuth';
 import { useNotifications } from '@/components/NotificationSystem';
 import { getApiUrl } from '@/utils/api';
@@ -73,8 +73,16 @@ export default function UserDashboard() {
   const [currentAddressId, setCurrentAddressId] = useState<number | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addNotification } = useNotifications();
   const locale = useLocale();
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['overview', 'consultations', 'webinars', 'search', 'profile', 'orders', 'events'].includes(tabParam)) {
+      setActiveSection(tabParam as any);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (activeSection === 'profile') {
@@ -138,6 +146,14 @@ export default function UserDashboard() {
       if (pendingConsultantId) {
         // Redirect to consultations page to resume booking
         router.push(`/${locale}/services/consultations?consultantId=${pendingConsultantId}`);
+        return;
+      }
+
+      // Check for pending event redirection
+      const pendingEventId = localStorage.getItem('pending_event_id');
+      if (pendingEventId) {
+        localStorage.removeItem('pending_event_id');
+        router.push(`/${locale}/events?eventId=${pendingEventId}`);
       }
     } catch (error) {
       console.error('Error checking auth:', error);

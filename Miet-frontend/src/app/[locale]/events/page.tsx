@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import { getApiUrl } from '@/utils/api';
@@ -21,14 +21,26 @@ interface PublicEvent {
 
 export default function EventsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'online' | 'offline'>('online');
   const [registering, setRegistering] = useState<number | null>(null);
+  const [showRegModal, setShowRegModal] = useState<PublicEvent | null>(null);
 
   useEffect(() => {
     fetchEvents();
   }, []);
+
+  useEffect(() => {
+    const eventIdParam = searchParams.get('eventId');
+    if (eventIdParam && events.length > 0) {
+      const ev = events.find(e => e.id.toString() === eventIdParam);
+      if (ev) {
+        handleJoin(ev);
+      }
+    }
+  }, [searchParams, events]);
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -50,8 +62,8 @@ export default function EventsPage() {
   const handleJoin = async (event: PublicEvent) => {
     const token = localStorage.getItem("user_jwt");
     if (!token) {
-      alert("Please login first to join an event.");
-      router.push(`/en/login?redirect=/en/events`);
+      localStorage.setItem('pending_event_id', event.id.toString());
+      router.push(`/en/dashboard`);
       return;
     }
 
@@ -59,30 +71,38 @@ export default function EventsPage() {
       // Paid event -> go to checkout for this service
       router.push(`/en/checkout?service_id=${event.id}&type=event`);
     } else {
-      // Free event -> register immediately
-      setRegistering(event.id);
-      try {
-        const res = await fetch(getApiUrl('api/events/register'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ event_id: event.id })
-        });
-        
-        const data = await res.json();
-        if (res.ok) {
-          alert('Successfully registered! You have been emailed the details.');
-          router.push('/en/user/dashboard');
-        } else {
-          alert(data.error || 'Failed to register.');
-        }
-      } catch (e) {
-        alert('Failed to register.');
-      } finally {
-        setRegistering(null);
+      // Free event -> open registration modal
+      setShowRegModal(event);
+    }
+  };
+
+  const confirmRegistration = async () => {
+    if (!showRegModal) return;
+    const token = localStorage.getItem("user_jwt");
+    setRegistering(showRegModal.id);
+    
+    try {
+      const res = await fetch(getApiUrl('api/events/register'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ event_id: showRegModal.id })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        alert('Successfully registered! You have been emailed the details.');
+        router.push('/en/dashboard?tab=events');
+      } else {
+        alert(data.error || 'Failed to register.');
       }
+    } catch (e) {
+      alert('Failed to register.');
+    } finally {
+      setRegistering(null);
+      setShowRegModal(null);
     }
   };
 
@@ -257,6 +277,51 @@ export default function EventsPage() {
           )}
         </div>
       </main>
+
+      {/* Registration Modal */}
+      {showRegModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.6)', zIndex: 3000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+          backdropFilter: 'blur(4px)'
+        }} onClick={e => { if (e.target === e.currentTarget) setShowRegModal(null); }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px', padding: '40px',
+            width: '90vw', maxWidth: '480px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
+            position: 'relative', textAlign: 'center'
+          }}>
+            <button onClick={() => setShowRegModal(null)} style={{ position: 'absolute', top: 16, right: 16, background: '#f1f5f9', border: 'none', fontSize: 20, color: '#64748b', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '50%' }}>×</button>
+            <div style={{ width: '64px', height: '64px', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 20px' }}>
+              <FaCalendarAlt />
+            </div>
+            <h2 style={{ fontWeight: 800, marginBottom: 12, fontSize: '24px', color: '#1e1b4b' }}>
+              Confirm Registration
+            </h2>
+            <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
+              You are about to register for <strong>{showRegModal.name}</strong>. A confirmation email will be sent to your registered email address.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowRegModal(null)} disabled={registering === showRegModal.id} style={{
+                flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px',
+                padding: '14px', fontWeight: 700, fontSize: '15px', cursor: 'pointer'
+              }}>
+                Cancel
+              </button>
+              <button onClick={confirmRegistration} disabled={registering === showRegModal.id} style={{
+                flex: 2, background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', color: '#fff', border: 'none', borderRadius: '12px',
+                padding: '14px', fontWeight: 700, fontSize: '15px', cursor: registering === showRegModal.id ? 'not-allowed' : 'pointer',
+                boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+              }}>
+                {registering === showRegModal.id ? <><FaSpinner className="spin" /> Processing...</> : 'Confirm & Register'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </>
   );
