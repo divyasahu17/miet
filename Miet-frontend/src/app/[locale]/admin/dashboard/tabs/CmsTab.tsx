@@ -15,6 +15,7 @@ import PrivacyTab from './PrivacyTab';
 import TermsTab from './TermsTab';
 import ContactTab from './ContactTab';
 import EventsTab from './EventsTab';
+import ServicesCmsTab from './ServicesCmsTab';
 
 export default function CmsTab(props: any) {
   const {
@@ -220,6 +221,8 @@ export default function CmsTab(props: any) {
             <ContactTab />
           ) : activePage === 'events' ? (
             <EventsTab />
+          ) : activePage === 'services' ? (
+            <ServicesCmsTab />
           ) : (
             <>
               {/* Search bar inside selected page */}

@@ -934,6 +934,13 @@ async function setupDatabase() {
   }
 
   try {
+    await ensureCmsServicesCardsTable();
+  } catch (error) {
+    console.error('Error ensuring CMS services cards table:', error);
+  }
+
+
+  try {
     await ensureEcommerceTables();
     console.log('E-commerce tables ensured successfully.');
   } catch (error) {
@@ -7742,6 +7749,40 @@ async function ensureCmsTable() {
   }
 }
 
+async function ensureCmsServicesCardsTable() {
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS cms_services_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT,
+        points TEXT,
+        button_name TEXT,
+        button_color TEXT,
+        hyper_link TEXT,
+        status TEXT DEFAULT 'active',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Insert defaults if empty
+    const count = await db.get("SELECT COUNT(*) as count FROM cms_services_cards");
+    if (count.count === 0) {
+      await db.run(`
+        INSERT INTO cms_services_cards (title, description, points, button_name, button_color, hyper_link, status)
+        VALUES 
+        ('Consultations', 'Book an appointment with our experts.', '["Expert advice", "Flexible timings", "Online & Offline"]', 'Book Now', '#5a67d8', '/services/consultations', 'active'),
+        ('Subscriptions', 'Get continuous access and support.', '["Monthly plans", "Priority support", "Exclusive content"]', 'Subscribe', '#22543d', '/contact', 'active'),
+        ('Events', 'Join our upcoming workshops and webinars.', '["Interactive sessions", "Networking", "Skill building"]', 'View Events', '#e53e3e', '/contact', 'active'),
+        ('Tests', 'Evaluate your skills with our tests.', '["Detailed reports", "Instant results", "Benchmarking"]', 'Take a Test', '#38a169', '/#test-section', 'active')
+      `);
+    }
+    console.log('CMS services cards table ensured successfully.');
+  } catch (error) {
+    console.error('Error creating cms_services_cards table:', error);
+  }
+}
+
 // Ensure team table exists
 async function ensureTeamTable() {
   try {
@@ -9971,6 +10012,68 @@ const validateProgrammes = (req, res, next) => {
   }
   next();
 };
+
+// --- CMS Services Cards Routes ---
+
+app.get('/api/cms-services', async (req, res) => {
+  try {
+    const services = await db.all("SELECT * FROM cms_services_cards WHERE status = 'active' ORDER BY id ASC");
+    res.json({ success: true, services });
+  } catch (error) {
+    console.error('Error fetching CMS services:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.get('/api/cms-services/all', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const services = await db.all("SELECT * FROM cms_services_cards ORDER BY id ASC");
+    res.json({ success: true, services });
+  } catch (error) {
+    console.error('Error fetching CMS services:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.post('/api/cms-services', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { title, description, points, button_name, button_color, hyper_link, status } = req.body;
+    const result = await db.run(
+      `INSERT INTO cms_services_cards (title, description, points, button_name, button_color, hyper_link, status) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, points, button_name, button_color, hyper_link, status || 'active']
+    );
+    res.json({ success: true, message: 'Service card created', id: result.lastID });
+  } catch (error) {
+    console.error('Error creating CMS service:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.put('/api/cms-services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, points, button_name, button_color, hyper_link, status } = req.body;
+    await db.run(
+      `UPDATE cms_services_cards SET title = ?, description = ?, points = ?, button_name = ?, button_color = ?, hyper_link = ?, status = ? WHERE id = ?`,
+      [title, description, points, button_name, button_color, hyper_link, status, id]
+    );
+    res.json({ success: true, message: 'Service card updated' });
+  } catch (error) {
+    console.error('Error updating CMS service:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.delete('/api/cms-services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.run(`DELETE FROM cms_services_cards WHERE id = ?`, [id]);
+    res.json({ success: true, message: 'Service card deleted' });
+  } catch (error) {
+    console.error('Error deleting CMS service:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 // --- Team Routes ---
 

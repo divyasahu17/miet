@@ -21,64 +21,41 @@ const text = (_cmsKey: string, fallback: string) => fallback;
   const [activeTab, setActiveTab] = useState<'basic' | 'standard' | 'premium'>('basic');
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
 
-  // CMS content auto-refreshes via the useCmsContent hook
+  const [loading, setLoading] = useState(true);
+  const [serviceCards, setServiceCards] = useState<any[]>([]);
 
-  const serviceCards = [
-    {
-      key: 'appointments',
-      title: text('cards_appointments_title', t('cards.appointments.title')),
-      description: text('cards_appointments_desc', t('cards.appointments.desc')),
-      features: [
-        text('cards_appointments_f1', t('cards.appointments.f1')),
-        text('cards_appointments_f2', t('cards.appointments.f2')),
-        text('cards_appointments_f3', t('cards.appointments.f3')),
-        text('cards_appointments_f4', t('cards.appointments.f4')),
-      ],
-      cta: text('cards_appointments_cta', t('cards.appointments.cta')),
-      ctaLink: '/services/consultations',
-      color: '#5a67d8',
-    },
-    {
-      key: 'subscriptions',
-      title: text('cards_subscriptions_title', t('cards.subscriptions.title')),
-      description: text('cards_subscriptions_desc', t('cards.subscriptions.desc')),
-      features: [
-        text('cards_subscriptions_f1', t('cards.subscriptions.f1')),
-        text('cards_subscriptions_f2', t('cards.subscriptions.f2')),
-        text('cards_subscriptions_f3', t('cards.subscriptions.f3')),
-        text('cards_subscriptions_f4', t('cards.subscriptions.f4')),
-      ],
-      cta: text('cards_subscriptions_cta', t('cards.subscriptions.cta')),
-      ctaLink: '/contact',
-      color: '#22543d',
-    },
-    {
-      key: 'events',
-      title: text('cards_events_title', t('cards.events.title')),
-      description: text('cards_events_desc', t('cards.events.desc')),
-      features: [
-        text('cards_events_f1', t('cards.events.f1')),
-        text('cards_events_f2', t('cards.events.f2')),
-        text('cards_events_f3', t('cards.events.f3')),
-      ],
-      cta: text('cards_events_cta', t('cards.events.cta')),
-      ctaLink: '/contact',
-      color: '#e53e3e',
-    },
-    {
-      key: 'tests',
-      title: text('cards_tests_title', t('cards.tests.title')),
-      description: text('cards_tests_desc', t('cards.tests.desc')),
-      features: [
-        text('cards_tests_f1', t('cards.tests.f1')),
-        text('cards_tests_f2', t('cards.tests.f2')),
-        text('cards_tests_f3', t('cards.tests.f3')),
-      ],
-      cta: text('cards_tests_cta', t('cards.tests.cta')),
-      ctaLink: '/contact',
-      color: '#38a169',
-    },
-  ];
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch((process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000') + '/api/cms-services');
+        if (res.ok) {
+          const data = await res.json();
+          const formattedCards = (data.services || []).map((card: any) => {
+            let features = [];
+            try { features = JSON.parse(card.points || '[]'); } catch {}
+            return {
+              key: card.id.toString(),
+              title: card.title,
+              description: card.description,
+              features: features,
+              cta: card.button_name,
+              ctaLink: card.hyper_link,
+              color: card.button_color || '#5a67d8',
+              isSubscriptions: card.title.toLowerCase().includes('subscription'),
+              isTests: card.title.toLowerCase().includes('test'),
+              isEvents: card.title.toLowerCase().includes('event')
+            };
+          });
+          setServiceCards(formattedCards);
+        }
+      } catch (error) {
+        console.error('Error fetching dynamic services:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
 
   const subscriptionPlans = [
     {
@@ -227,11 +204,11 @@ const text = (_cmsKey: string, fallback: string) => fallback;
                   paddingLeft: '1.5rem',
                   lineHeight: '1.6'
                 }}>
-                  {card.features.map((f, i) => (
+                  {card.features.map((f: string, i: number) => (
                     <li key={i} style={{ marginBottom: '0.75rem', fontWeight: '500' }}>{f}</li>
                   ))}
                 </ul>
-                {card.key === 'subscriptions' ? (
+                {card.isSubscriptions ? (
                   <button
                     onClick={() => setShowSubscriptionModal(true)}
                     style={{
@@ -262,7 +239,7 @@ const text = (_cmsKey: string, fallback: string) => fallback;
                   >
                     {card.cta}
                   </button>
-                ) : card.key === 'events' ? (
+                ) : card.isEvents ? (
                   <a
                     href="/events"
                     style={{
@@ -290,7 +267,7 @@ const text = (_cmsKey: string, fallback: string) => fallback;
                   >
                     {card.cta}
                   </a>
-                ) : card.key === 'tests' ? (
+                ) : card.isTests ? (
                   <Link
                     href="/#test-section"
                     style={{
