@@ -58,7 +58,7 @@ export default function SubscriptionsPage() {
                   border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s ease'
                 }}
               >
-                For Individuals
+                User Plan
               </button>
               <button
                 onClick={() => setActiveTab('consultant')}
@@ -68,7 +68,7 @@ export default function SubscriptionsPage() {
                   border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s ease'
                 }}
               >
-                For Consultants
+                Consultant Plan
               </button>
             </div>
           </div>

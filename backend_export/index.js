@@ -11763,13 +11763,14 @@ app.get('/api/admin/subscriptions', authenticateToken, async (req, res) => {
 
 app.post('/api/admin/subscriptions', authenticateToken, requireRole('superadmin'), async (req, res) => {
   try {
-    const { plan_name, billing_cycle, target_audience, base_price, description, features_json } = req.body;
+    const { plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active } = req.body;
     const plan_key = plan_name.toLowerCase().replace(/\s+/g, '_');
+    const active_status = is_active !== undefined ? is_active : 1;
     
     const result = await db.run(`
-      INSERT INTO subscription_plans (plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json]);
+      INSERT INTO subscription_plans (plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [plan_key, plan_name, billing_cycle, target_audience, base_price, description, features_json, active_status]);
     
     res.json({ success: true, message: 'Plan created successfully', id: result.lastID });
   } catch (err) {
