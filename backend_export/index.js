@@ -3913,7 +3913,7 @@ app.post('/api/consultant-login', async (req, res) => {
 });
 
 // --- Users CRUD API ---
-app.get('/api/users', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/users', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const users = await db.all('SELECT id, username, role, status, created_at FROM users');
   res.json(users);
 });
