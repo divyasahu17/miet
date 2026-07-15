@@ -364,21 +364,23 @@ export default function SearchPanel() {
     return () => { try { resizeObserver.disconnect(); } catch (e) { } };
   }, []);
 
-  // Reverse geocode city name
+  // Reverse geocode city name (Using OpenStreetMap Nominatim to avoid Google API Key restrictions)
   useEffect(() => {
     if (userLocation) {
       setCityLoading(true);
       const fetchCity = async () => {
         try {
-          const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${userLocation.lat},${userLocation.lng}&key=${googleMapsApiKey}`;
-          const res = await fetch(url);
+          // Use OpenStreetMap Nominatim API which is free and doesn't require an API key
+          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.lat}&lon=${userLocation.lng}&zoom=10&addressdetails=1`;
+          const res = await fetch(url, {
+            headers: {
+              'Accept-Language': 'en'
+            }
+          });
           const data = await res.json();
-          if (data.status === 'OK') {
-            const addressComponents: any[] = data.results[0].address_components;
-            const cityComponent = addressComponents.find((comp) =>
-              comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
-            );
-            setCity(cityComponent ? cityComponent.long_name : 'Your Area');
+          if (data && data.address) {
+            const cityName = data.address.city || data.address.town || data.address.county || data.address.state_district || 'Your Area';
+            setCity(cityName);
           } else {
             setCity('Your Area');
           }
@@ -389,10 +391,8 @@ export default function SearchPanel() {
         }
       };
       fetchCity();
-    } else {
-      setCity('Delhi');
     }
-  }, [userLocation, googleMapsApiKey]);
+  }, [userLocation]);
 
   // Voice search implementation
   const handleVoiceSearch = () => {
