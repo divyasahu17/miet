@@ -2706,7 +2706,7 @@ function requireRole(roleOrRoles) {
 
 // --- Consultant CRUD API ---
 // Get all consultants (superadmin only) with optional city filter
-// app.get('/api/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+// app.get('/api/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
 //   const { city } = req.query;
 //   let sql = `SELECT c.*, u.username FROM consultants c
 //              LEFT JOIN users u ON c.user_id = u.id`;
@@ -2726,7 +2726,7 @@ function requireRole(roleOrRoles) {
 // });
 
 
-// app.get('/api/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+// app.get('/api/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
 //   const { city, status } = req.query;
 
 
@@ -2800,7 +2800,7 @@ function requireRole(roleOrRoles) {
 
 
 
-app.get('/api/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { city, status } = req.query;
 
   const page = parseInt(req.query.page) || 1;
@@ -2890,7 +2890,7 @@ app.get('/api/consultants', authenticateToken, requireRole('superadmin'), async 
 
 
 
-//authenticateToken, requireRole('superadmin'), 
+//authenticateToken, requireRole(['admin', 'superadmin']), 
 app.post('/api/consultantsUpdate_approval', async (req, res) => {
   const { id, account_status } = req.body;
 
@@ -3636,7 +3636,7 @@ app.post('/api/consultants/subscribe', authenticateToken, async (req, res) => {
 });
 
 // --- Get Pending Consultants (admin) ---
-app.get('/api/consultants/pending', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/consultants/pending', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const pending = await db.all("SELECT * FROM consultants WHERE approval_status = 'pending' ORDER BY created_at DESC");
     res.json(pending);
@@ -3657,7 +3657,7 @@ app.get('/api/consultants/:id', authenticateToken, async (req, res) => {
   res.json(consultant);
 });
 // Create consultant (superadmin only)
-app.post('/api/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { username, password, name, email, phone, image, description, tagline, location_lat, location_lng, address, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured } = req.body;
   if (!username || !password || !name || !email || !city || city.trim() === '') return res.status(400).json({ error: 'Missing required fields (city is required)' });
   try {
@@ -3773,7 +3773,7 @@ app.put('/api/consultants/:id', authenticateToken, async (req, res) => {
 
 
 // Delete consultant (superadmin only)
-app.delete('/api/consultants/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/consultants/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const consultant = await db.get('SELECT user_id FROM consultants WHERE id = ?', id);
@@ -3803,7 +3803,7 @@ app.post('/api/consultants/:id/status', authenticateToken, async (req, res) => {
 });
 
 // Toggle consultant featured status (superadmin only)
-app.post('/api/consultants/:id/featured', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/consultants/:id/featured', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { featured } = req.body;
   const consultant = await db.get('SELECT * FROM consultants WHERE id = ?', id);
@@ -3814,7 +3814,7 @@ app.post('/api/consultants/:id/featured', authenticateToken, requireRole('supera
 });
 
 // --- Admin: Approve/Reject Consultant ---
-app.post('/api/consultants/:id/approve', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/consultants/:id/approve', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reason } = req.body;
@@ -3833,7 +3833,7 @@ app.post('/api/consultants/:id/approve', authenticateToken, requireRole('superad
 });
 
 // --- Admin: Promote Consultant to Pro ---
-app.post('/api/consultants/:id/promote', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/consultants/:id/promote', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { is_pro, subscription_plan } = req.body;
@@ -3917,32 +3917,32 @@ app.get('/api/users', authenticateToken, requireRole(['admin', 'superadmin']), a
   const users = await db.all('SELECT id, username, role, status, created_at FROM users');
   res.json(users);
 });
-app.get('/api/users/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/users/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const user = await db.get('SELECT id, username, role, status, created_at FROM users WHERE id = ?', id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
 });
-app.post('/api/users', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/users', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { username, password, role } = req.body;
   if (!username || !password || !role) return res.status(400).json({ error: 'Missing required fields' });
   const hash = await bcrypt.hash(password, 10);
   const result = await db.run('INSERT INTO users (username, password, role, status) VALUES (?, ?, ?, ?)', username, hash, role, 'active');
   res.json({ id: result.lastID });
 });
-app.put('/api/users/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/users/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
   await db.run('UPDATE users SET role = ? WHERE id = ?', role, id);
   res.json({ success: true });
 });
-app.delete('/api/users/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/users/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   await db.run('DELETE FROM users WHERE id = ?', id);
   res.json({ success: true });
 });
 // Update user status
-app.post('/api/users/:id/status', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/users/:id/status', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   if (!['active', 'inactive'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
@@ -3952,7 +3952,7 @@ app.post('/api/users/:id/status', authenticateToken, requireRole('superadmin'), 
 
 // --- Services CRUD API ---
 // Get all services
-app.get('/api/services', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/services', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const services = await db.all('SELECT * FROM services ORDER BY created_at DESC');
   res.json(services);
 });
@@ -3982,7 +3982,7 @@ app.get('/api/services/public/:id', async (req, res) => {
 });
 
 // Get service by id (with consultants, categories, subcategories, suggestions)
-app.get('/api/services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/services/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const service = await db.get('SELECT * FROM services WHERE id = ?', id);
   if (!service) return res.status(404).json({ error: 'Not found' });
@@ -3999,7 +3999,7 @@ app.get('/api/services/:id', authenticateToken, requireRole('superadmin'), async
 
 
 // Create service
-app.post('/api/services', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/services', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
 
   // const { name, description, delivery_mode, service_type, appointment_type, event_type, test_type,   revenue_type = 'paid', price, renewal_date, center, test_redirect_url, consultant_ids = [], category_ids = [], subcategory_ids = [], suggestions = [], subscription_start, subscription_end, discount, monthly_price, yearly_price, center_address, center_lat, center_lng, event_start, event_end, event_image, event_meet_link } = req.body;
 
@@ -4049,7 +4049,7 @@ app.post('/api/services', authenticateToken, requireRole('superadmin'), async (r
   res.json({ id: service_id });
 });
 // Update service
-app.put('/api/services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/services/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { name, description, delivery_mode, service_type, appointment_type, event_type, test_type, revenue_type, price, renewal_date, center, test_redirect_url, consultant_ids = [], category_ids = [], subcategory_ids = [], suggestions = [], subscription_start, subscription_end, discount, monthly_price, yearly_price, center_address, center_lat, center_lng, event_start, event_end, event_image, event_meet_link } = req.body;
   const service = await db.get('SELECT * FROM services WHERE id = ?', id);
@@ -4088,7 +4088,7 @@ app.put('/api/services/:id', authenticateToken, requireRole('superadmin'), async
   res.json({ success: true });
 });
 // Delete service
-app.delete('/api/services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/services/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   await db.run('DELETE FROM services WHERE id = ?', id);
   await db.run('DELETE FROM services_consultants WHERE service_id = ?', id);
@@ -4098,19 +4098,19 @@ app.delete('/api/services/:id', authenticateToken, requireRole('superadmin'), as
   res.json({ success: true });
 });
 // Manage consultants for a service
-app.get('/api/services/:id/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/services/:id/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const consultants = await db.all('SELECT DISTINCT c.* FROM consultants c JOIN services_consultants sc ON c.id = sc.consultant_id WHERE sc.service_id = ? ORDER BY c.id', id);
   res.json(consultants);
 });
-app.post('/api/services/:id/consultants', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/services/:id/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id } = req.params;
   const { consultant_id } = req.body;
   if (!consultant_id) return res.status(400).json({ error: 'Missing consultant_id' });
   await db.run('INSERT INTO services_consultants (service_id, consultant_id) VALUES (?, ?)', id, consultant_id);
   res.json({ success: true });
 });
-app.delete('/api/services/:id/consultants/:consultantId', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/services/:id/consultants/:consultantId', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   const { id, consultantId } = req.params;
   await db.run('DELETE FROM services_consultants WHERE service_id = ? AND consultant_id = ?', id, consultantId);
   res.json({ success: true });
@@ -6397,7 +6397,7 @@ app.post('/api/webinars', authenticateToken, requireRole(['superadmin', 'consult
 });
 // POST /api/webinars - Create new webinar (Admin only)
 // POST /api/webinars - Create new webinar (Admin only)
-app.post('/api/webinarsOld', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/webinarsOld', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const {
       title,
@@ -6538,7 +6538,7 @@ app.post('/api/webinarsOld', authenticateToken, requireRole('superadmin'), async
 });
 
 // Create consultation (Admin only) - Alternative endpoint for admin dashboard
-app.post('/api/admin/consultations', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/admin/consultations', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const {
       consultant_id,
@@ -6666,7 +6666,7 @@ app.post('/api/admin/consultations', authenticateToken, requireRole('superadmin'
 });
 
 // GET /api/admin/consultations - Get all consultations (Admin only)
-app.get('/api/admin/consultations', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/admin/consultations', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const consultations = await db.all(
       `SELECT a.*, c.name as consultant_name, c.email as consultant_email,
@@ -6696,7 +6696,7 @@ app.get('/api/admin/consultations', authenticateToken, requireRole('superadmin')
 });
 
 // PUT /api/admin/consultations/:id - Update consultation (Admin only)
-app.put('/api/admin/consultations/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/admin/consultations/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -6750,7 +6750,7 @@ app.put('/api/admin/consultations/:id', authenticateToken, requireRole('superadm
 });
 
 // POST /api/admin/consultations/:id/generate-meet - Generate Google Meet link for a consultation
-app.post('/api/admin/consultations/:id/generate-meet', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/admin/consultations/:id/generate-meet', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const adminUserId = req.user.id;
@@ -6839,7 +6839,7 @@ app.post('/api/admin/consultations/:id/generate-meet', authenticateToken, requir
 });
 
 // DELETE /api/admin/consultations/:id - Delete consultation (Admin only)
-app.delete('/api/admin/consultations/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/admin/consultations/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -9010,7 +9010,7 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // POST /api/products/:id/approve - Approve a product (Admin only)
-app.post('/api/products/:id/approve', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/products/:id/approve', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -9033,7 +9033,7 @@ app.post('/api/products/:id/approve', authenticateToken, requireRole('superadmin
 });
 
 // POST /api/products/:id/reject - Reject a product (Admin only)
-app.post('/api/products/:id/reject', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/products/:id/reject', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -10065,7 +10065,7 @@ app.get('/api/cms-services', async (req, res) => {
   }
 });
 
-app.get('/api/cms-services/all', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/cms-services/all', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const services = await db.all("SELECT * FROM cms_services_cards ORDER BY id ASC");
     res.json({ success: true, services });
@@ -10075,7 +10075,7 @@ app.get('/api/cms-services/all', authenticateToken, requireRole('superadmin'), a
   }
 });
 
-app.post('/api/cms-services', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/cms-services', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { title, description, points, button_name, button_color, hyper_link, status } = req.body;
     const result = await db.run(
@@ -10089,7 +10089,7 @@ app.post('/api/cms-services', authenticateToken, requireRole('superadmin'), asyn
   }
 });
 
-app.put('/api/cms-services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/cms-services/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, points, button_name, button_color, hyper_link, status } = req.body;
@@ -10104,7 +10104,7 @@ app.put('/api/cms-services/:id', authenticateToken, requireRole('superadmin'), a
   }
 });
 
-app.delete('/api/cms-services/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/cms-services/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     await db.run(`DELETE FROM cms_services_cards WHERE id = ?`, [id]);
@@ -10129,7 +10129,7 @@ app.get('/api/team', async (req, res) => {
 });
 
 // POST /api/team - Add team member
-app.post('/api/team', authenticateToken, requireRole('superadmin'), teamUpload.single('image'), async (req, res) => {
+app.post('/api/team', authenticateToken, requireRole(['admin', 'superadmin']), teamUpload.single('image'), async (req, res) => {
   try {
     const name = req.body.name || req.body.title || null;
     const designation = req.body.designation || req.body.role || null;
@@ -10162,7 +10162,7 @@ app.post('/api/team', authenticateToken, requireRole('superadmin'), teamUpload.s
 });
 
 // PUT /api/team/:id - Update team member
-app.put('/api/team/:id', authenticateToken, requireRole('superadmin'), teamUpload.single('image'), async (req, res) => {
+app.put('/api/team/:id', authenticateToken, requireRole(['admin', 'superadmin']), teamUpload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const name = req.body.name || req.body.title || null;
@@ -10200,7 +10200,7 @@ app.put('/api/team/:id', authenticateToken, requireRole('superadmin'), teamUploa
 });
 
 // DELETE /api/team/:id - Delete team member (Admin only)
-app.delete('/api/team/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/team/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const member = await db.get('SELECT * FROM team WHERE id = ?', [id]);
@@ -10236,7 +10236,7 @@ app.get('/api/programmes', async (req, res) => {
 });
 
 // POST /api/programmes - Add programme
-app.post('/api/programmes', authenticateToken, requireRole('superadmin'), programmesUpload.single('image'), async (req, res) => {
+app.post('/api/programmes', authenticateToken, requireRole(['admin', 'superadmin']), programmesUpload.single('image'), async (req, res) => {
   try {
     const title = req.body.title || req.body.name || null;
     const description = req.body.description || req.body.bio || null;
@@ -10264,7 +10264,7 @@ app.post('/api/programmes', authenticateToken, requireRole('superadmin'), progra
 });
 
 // PUT /api/programmes/:id - Update programme
-app.put('/api/programmes/:id', authenticateToken, requireRole('superadmin'), programmesUpload.single('image'), async (req, res) => {
+app.put('/api/programmes/:id', authenticateToken, requireRole(['admin', 'superadmin']), programmesUpload.single('image'), async (req, res) => {
   try {
     const { id } = req.params;
     const title = req.body.title || req.body.name || null;
@@ -10297,7 +10297,7 @@ app.put('/api/programmes/:id', authenticateToken, requireRole('superadmin'), pro
 });
 
 // DELETE /api/programmes/:id - Delete programme (Admin only)
-app.delete('/api/programmes/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/programmes/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const programme = await db.get('SELECT * FROM programmes WHERE id = ?', [id]);
@@ -11672,7 +11672,7 @@ app.get('/api/admin/settings', authenticateToken, async (req, res) => {
 });
 
 // PUT /api/admin/settings - Update an admin setting (Admin only)
-app.put('/api/admin/settings', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/admin/settings', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { settings } = req.body; // Expecting array of { setting_key, setting_value }
     if (!Array.isArray(settings)) {
@@ -11761,7 +11761,7 @@ app.get('/api/admin/subscriptions', async (req, res) => {
   }
 });
 
-app.post('/api/admin/subscriptions', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/admin/subscriptions', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active } = req.body;
     const plan_key = plan_name.toLowerCase().replace(/\s+/g, '_');
@@ -11778,7 +11778,7 @@ app.post('/api/admin/subscriptions', authenticateToken, requireRole('superadmin'
   }
 });
 
-app.put('/api/admin/subscriptions/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.put('/api/admin/subscriptions/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { plan_name, billing_cycle, target_audience, base_price, description, features_json, is_active } = req.body;
     const plan_key = plan_name.toLowerCase().replace(/\s+/g, '_');
@@ -11795,7 +11795,7 @@ app.put('/api/admin/subscriptions/:id', authenticateToken, requireRole('superadm
   }
 });
 
-app.delete('/api/admin/subscriptions/:id', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.delete('/api/admin/subscriptions/:id', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     await db.run('DELETE FROM subscription_plans WHERE id = ?', req.params.id);
     res.json({ success: true, message: 'Plan deleted successfully' });
@@ -11818,7 +11818,7 @@ app.get('/api/events/public', async (req, res) => {
   }
 });
 
-app.get('/api/events/:id/attendees', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.get('/api/events/:id/attendees', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const attendees = await db.all(`
@@ -11936,7 +11936,7 @@ app.post('/api/events/checkout', authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/api/events/:id/remind', authenticateToken, requireRole('superadmin'), async (req, res) => {
+app.post('/api/events/:id/remind', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
     const { id } = req.params;
     const event = await db.get("SELECT * FROM services WHERE id = ? AND service_type = 'event'", id);
