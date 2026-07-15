@@ -284,6 +284,23 @@ export default function SearchPanel() {
     return matchesSearch && matchesMode;
   });
 
+  // Get user location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setUserLocation(loc);
+          setMapCenter(loc);
+        },
+        (err) => {
+          console.log('Geolocation on load failed:', err);
+        },
+        { timeout: 10000 }
+      );
+    }
+  }, []);
+
   // Handle Nearby click
   const handleNearby = () => {
     if (navigator.geolocation) {
