@@ -921,6 +921,7 @@ async function setupDatabase() {
       google_id TEXT UNIQUE,
       is_verified BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS password_resets (
