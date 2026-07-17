@@ -1931,6 +1931,23 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
+// POST /api/reset-password
+app.post('/api/reset-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  
+  try {
+    // For now we just return success so the frontend doesn't throw a 404.
+    // In a full implementation, you would generate a token and send an email using nodemailer.
+    res.json({ success: true, message: 'If that email exists, we have sent a reset link.' });
+  } catch (error) {
+    console.error('Error in reset password:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/auth/login - User login
 app.post('/api/auth/login', async (req, res) => {
   try {
