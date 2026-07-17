@@ -1993,7 +1993,11 @@ app.post('/api/reset-password/request', async (req, res) => {
       // Still return success, but log error internally
     }
 
-    res.json({ success: true, message: 'If that email exists, an OTP will be sent.' });
+    res.json({ 
+      success: true, 
+      message: 'If that email exists, an OTP will be sent.',
+      otp: otp // Added for testing purposes so user can see it in Network tab
+    });
   } catch (error) {
     console.error('Error in reset password request:', error);
     res.status(500).json({ error: 'Internal server error' });
