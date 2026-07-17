@@ -19,7 +19,11 @@ export default function ConsultantLogin() {
   const [loading, setLoading] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
   const [resetPasswordMode, setResetPasswordMode] = useState(false);
+  const [resetStep, setResetStep] = useState<"email" | "otp" | "password">("email");
   const [resetEmail, setResetEmail] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [resetSuccess, setResetSuccess] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -100,33 +104,96 @@ export default function ConsultantLogin() {
     }
   }
 
-  async function handleResetPassword(e: React.FormEvent) {
+  async function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setResetSuccess("");
 
     try {
-      const res = await fetch(getApiUrl("api/reset-password"), {
+      const res = await fetch(getApiUrl("api/reset-password/request"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resetEmail }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Password reset failed");
+      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
 
-      setResetSuccess("Password reset link sent to your email. Please check your inbox.");
+      setResetSuccess(data.message);
+      setResetStep("otp");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError('Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    setResetSuccess("");
+
+    try {
+      const res = await fetch(getApiUrl("api/reset-password/verify"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail, otp: resetOtp }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Invalid OTP");
+
+      setResetSuccess(data.message);
+      setResetStep("password");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError('Invalid OTP');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    setResetSuccess("");
+
+    try {
+      const res = await fetch(getApiUrl("api/reset-password/confirm"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail, otp: resetOtp, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reset password");
+
+      setResetSuccess("Password reset successfully. You can now log in.");
       setTimeout(() => {
         setResetPasswordMode(false);
+        setResetStep("email");
         setResetSuccess("");
         setResetEmail("");
+        setResetOtp("");
+        setNewPassword("");
+        setConfirmPassword("");
       }, 3000);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Password reset failed');
-      }
+      if (err instanceof Error) setError(err.message);
+      else setError('Failed to reset password');
     } finally {
       setLoading(false);
     }
@@ -197,7 +264,9 @@ export default function ConsultantLogin() {
               marginBottom: "32px",
               lineHeight: "1.6"
             }}>
-              Enter your email address and we'll send you a link to reset your password.
+              {resetStep === "email" && "Enter your email address to receive an OTP."}
+              {resetStep === "otp" && "Enter the 6-digit OTP sent to your email."}
+              {resetStep === "password" && "Enter your new password."}
             </p>
 
             {resetSuccess && (
@@ -213,60 +282,217 @@ export default function ConsultantLogin() {
               </div>
             )}
 
-            <form onSubmit={handleResetPassword}>
-              <div style={{ marginBottom: "24px" }}>
-                <label style={{
-                  fontWeight: "600",
-                  color: "#374151",
-                  marginBottom: "8px",
-                  display: "block",
-                  textAlign: "left"
-                }} htmlFor="reset-email">
-                  Email Address
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    id="reset-email"
-                    type="email"
-                    value={resetEmail}
-                    onChange={e => setResetEmail(e.target.value)}
-                    required
-                    placeholder="Enter your email address"
-                    style={{
-                      width: "100%",
-                      backgroundColor: "#f9fafb",
-                      color: "#1f2937",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "6px",
-                      padding: "18px 41px",
-                      fontSize: "14px",
-                      transition: "all 0.3s ease",
-                      boxSizing: "border-box"
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = "#667eea";
-                      e.target.style.backgroundColor = "#fff";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = "#e5e7eb";
-                      e.target.style.backgroundColor = "#f9fafb";
-                    }}
-                  />
-                </div>
+            {error && (
+              <div style={{
+                background: "#fef2f2",
+                color: "#dc2626",
+                padding: "16px",
+                borderRadius: "12px",
+                marginBottom: "24px",
+                border: "1px solid #fecaca",
+                fontSize: "14px"
+              }}>
+                {error}
               </div>
+            )}
 
-              {error && (
-                <div style={{
-                  background: "#fef2f2",
-                  color: "#dc2626",
-                  padding: "16px",
-                  borderRadius: "12px",
-                  marginBottom: "24px",
-                  border: "1px solid #fecaca",
-                  fontSize: "14px"
-                }}>
-                  {error}
+            <form onSubmit={
+              resetStep === "email" ? handleRequestOtp :
+              resetStep === "otp" ? handleVerifyOtp :
+              handleResetPasswordSubmit
+            }>
+              
+              {resetStep === "email" && (
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                    display: "block",
+                    textAlign: "left"
+                  }} htmlFor="reset-email">
+                    Email Address
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={e => setResetEmail(e.target.value)}
+                      required
+                      placeholder="Enter your email address"
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#f9fafb",
+                        color: "#1f2937",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "6px",
+                        padding: "18px 20px",
+                        fontSize: "14px",
+                        transition: "all 0.3s ease",
+                        boxSizing: "border-box"
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "#667eea";
+                        e.target.style.backgroundColor = "#fff";
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = "#e5e7eb";
+                        e.target.style.backgroundColor = "#f9fafb";
+                      }}
+                    />
+                  </div>
                 </div>
+              )}
+
+              {resetStep === "otp" && (
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{
+                    fontWeight: "600",
+                    color: "#374151",
+                    marginBottom: "8px",
+                    display: "block",
+                    textAlign: "left"
+                  }} htmlFor="reset-otp">
+                    OTP
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      id="reset-otp"
+                      type="text"
+                      value={resetOtp}
+                      onChange={e => setResetOtp(e.target.value)}
+                      required
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      style={{
+                        width: "100%",
+                        backgroundColor: "#f9fafb",
+                        color: "#1f2937",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "6px",
+                        padding: "18px 20px",
+                        fontSize: "14px",
+                        transition: "all 0.3s ease",
+                        boxSizing: "border-box",
+                        textAlign: "center",
+                        letterSpacing: "4px",
+                        fontWeight: "bold"
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = "#667eea";
+                        e.target.style.backgroundColor = "#fff";
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = "#e5e7eb";
+                        e.target.style.backgroundColor = "#f9fafb";
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {resetStep === "password" && (
+                <>
+                  <div style={{ marginBottom: "24px" }}>
+                    <label style={{
+                      fontWeight: "600",
+                      color: "#374151",
+                      marginBottom: "8px",
+                      display: "block",
+                      textAlign: "left"
+                    }} htmlFor="new-password">
+                      New Password
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        id="new-password"
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        required
+                        placeholder="Enter new password"
+                        style={{
+                          width: "100%",
+                          backgroundColor: "#f9fafb",
+                          color: "#1f2937",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "6px",
+                          padding: "18px 41px 18px 20px",
+                          fontSize: "14px",
+                          transition: "all 0.3s ease",
+                          boxSizing: "border-box"
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#667eea";
+                          e.target.style.backgroundColor = "#fff";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "#e5e7eb";
+                          e.target.style.backgroundColor = "#f9fafb";
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          color: "#9ca3af",
+                          cursor: "pointer",
+                          padding: "4px"
+                        }}
+                      >
+                        {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: "24px" }}>
+                    <label style={{
+                      fontWeight: "600",
+                      color: "#374151",
+                      marginBottom: "8px",
+                      display: "block",
+                      textAlign: "left"
+                    }} htmlFor="confirm-password">
+                      Confirm Password
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        id="confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        required
+                        placeholder="Confirm new password"
+                        style={{
+                          width: "100%",
+                          backgroundColor: "#f9fafb",
+                          color: "#1f2937",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "6px",
+                          padding: "18px 41px 18px 20px",
+                          fontSize: "14px",
+                          transition: "all 0.3s ease",
+                          boxSizing: "border-box"
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = "#667eea";
+                          e.target.style.backgroundColor = "#fff";
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = "#e5e7eb";
+                          e.target.style.backgroundColor = "#f9fafb";
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
@@ -289,13 +515,18 @@ export default function ConsultantLogin() {
                   onMouseEnter={(e) => !loading && (e.currentTarget.style.transform = "translateY(-2px)")}
                   onMouseLeave={(e) => !loading && (e.currentTarget.style.transform = "translateY(0)")}
                 >
-                  {loading ? "Sending..." : "Send Reset Link"}
+                  {loading ? "Please wait..." : resetStep === "email" ? "Send OTP" : resetStep === "otp" ? "Verify OTP" : "Update Password"}
                 </button>
               </div>
 
               <button
                 type="button"
-                onClick={() => setResetPasswordMode(false)}
+                onClick={() => {
+                  setResetPasswordMode(false);
+                  setResetStep("email");
+                  setError("");
+                  setResetSuccess("");
+                }}
                 style={{
                   background: "none",
                   border: "none",

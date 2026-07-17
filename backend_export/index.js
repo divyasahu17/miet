@@ -921,7 +921,14 @@ async function setupDatabase() {
       google_id TEXT UNIQUE,
       is_verified BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      otp TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -1931,19 +1938,124 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// POST /api/reset-password
-app.post('/api/reset-password', async (req, res) => {
+// POST /api/reset-password/request (Step 1)
+app.post('/api/reset-password/request', async (req, res) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
   }
   
   try {
-    // For now we just return success so the frontend doesn't throw a 404.
-    // In a full implementation, you would generate a token and send an email using nodemailer.
-    res.json({ success: true, message: 'If that email exists, we have sent a reset link.' });
+    const user = await db.get('SELECT email, first_name FROM users_auth WHERE email = ?', email);
+    if (!user) {
+      // Return success to prevent email enumeration
+      return res.json({ success: true, message: 'If that email exists, an OTP will be sent.' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60000); // 15 mins
+
+    // Save to DB
+    await db.run(
+      'INSERT INTO password_resets (email, otp, expires_at) VALUES (?, ?, ?)',
+      [email, otp, expiresAt.toISOString()]
+    );
+
+    // Send Email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER || 'divyasahu175@gmail.com',
+        pass: process.env.SMTP_PASS || 'your_app_password_here'
+      }
+    });
+
+    const mailOptions = {
+      from: `"MIET Platform" <${process.env.SMTP_USER || 'noreply@miet.com'}>`,
+      to: email,
+      subject: 'Your Password Reset OTP',
+      text: `Hello ${user.first_name},\n\nYour OTP for password reset is: ${otp}\nThis OTP is valid for 15 minutes.\n\nIf you didn't request this, please ignore this email.`,
+      html: `
+        <h3>Password Reset OTP</h3>
+        <p>Hello ${user.first_name},</p>
+        <p>Your OTP for password reset is: <strong>${otp}</strong></p>
+        <p>This OTP is valid for 15 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (emailError) {
+      console.error('Failed to send OTP email:', emailError);
+      // Still return success, but log error internally
+    }
+
+    res.json({ success: true, message: 'If that email exists, an OTP will be sent.' });
   } catch (error) {
-    console.error('Error in reset password:', error);
+    console.error('Error in reset password request:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/reset-password/verify (Step 2)
+app.post('/api/reset-password/verify', async (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) return res.status(400).json({ error: 'Email and OTP are required' });
+
+  try {
+    const record = await db.get(
+      'SELECT * FROM password_resets WHERE email = ? AND otp = ? ORDER BY created_at DESC LIMIT 1',
+      [email, otp]
+    );
+
+    if (!record) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'OTP has expired' });
+    }
+
+    res.json({ success: true, message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Error in OTP verify:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/reset-password/confirm (Step 3)
+app.post('/api/reset-password/confirm', async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  if (!email || !otp || !newPassword) return res.status(400).json({ error: 'Missing required fields' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  try {
+    const record = await db.get(
+      'SELECT * FROM password_resets WHERE email = ? AND otp = ? ORDER BY created_at DESC LIMIT 1',
+      [email, otp]
+    );
+
+    if (!record || new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.run('UPDATE users_auth SET password_hash = ? WHERE email = ?', [passwordHash, email]);
+
+    // Optional: Also update the legacy `users` table if the consultant is stored there
+    const legacyUser = await db.get('SELECT id FROM users WHERE username = ?', email);
+    if (legacyUser) {
+      await db.run('UPDATE users SET password = ? WHERE username = ?', [passwordHash, email]);
+    }
+
+    // Clean up used OTPs
+    await db.run('DELETE FROM password_resets WHERE email = ?', email);
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error in reset password confirm:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
