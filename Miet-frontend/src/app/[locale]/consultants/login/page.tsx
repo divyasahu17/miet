@@ -18,6 +18,9 @@ export default function ConsultantLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isGoogleAuth, setIsGoogleAuth] = useState(false);
+  const [resetPasswordMode, setResetPasswordMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSuccess, setResetSuccess] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -97,6 +100,38 @@ export default function ConsultantLogin() {
     }
   }
 
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(getApiUrl("api/reset-password"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Password reset failed");
+
+      setResetSuccess("Password reset link sent to your email. Please check your inbox.");
+      setTimeout(() => {
+        setResetPasswordMode(false);
+        setResetSuccess("");
+        setResetEmail("");
+      }, 3000);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Password reset failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const handleGoogleLogin = async () => {
     setIsGoogleAuth(true);
     try {
@@ -107,6 +142,179 @@ export default function ConsultantLogin() {
       setIsGoogleAuth(false);
     }
   };
+
+  if (resetPasswordMode) {
+    return (
+      <>
+        <TopBar />
+        <div style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          padding: "20px"
+        }}>
+          <div style={{
+            background: "#fff",
+            padding: "40px",
+            borderRadius: "20px",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            minWidth: "400px",
+            maxWidth: "500px",
+            width: "100%",
+            textAlign: "center"
+          }}>
+            <div style={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 24px",
+              boxShadow: "0 8px 25px rgba(102, 126, 234, 0.3)"
+            }}>
+              <FaLock size={32} color="#fff" />
+            </div>
+
+            <h2 style={{
+              fontSize: "28px",
+              fontWeight: "700",
+              color: "#667eea",
+              marginBottom: "16px",
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text"
+            }}>
+              Reset Password
+            </h2>
+
+            <p style={{
+              color: "#6b7280",
+              marginBottom: "32px",
+              lineHeight: "1.6"
+            }}>
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
+
+            {resetSuccess && (
+              <div style={{
+                background: "#d1fae5",
+                color: "#065f46",
+                padding: "16px",
+                borderRadius: "12px",
+                marginBottom: "24px",
+                border: "1px solid #a7f3d0"
+              }}>
+                {resetSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleResetPassword}>
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{
+                  fontWeight: "600",
+                  color: "#374151",
+                  marginBottom: "8px",
+                  display: "block",
+                  textAlign: "left"
+                }} htmlFor="reset-email">
+                  Email Address
+                </label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    required
+                    placeholder="Enter your email address"
+                    style={{
+                      width: "100%",
+                      backgroundColor: "#f9fafb",
+                      color: "#1f2937",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      padding: "18px 41px",
+                      fontSize: "14px",
+                      transition: "all 0.3s ease",
+                      boxSizing: "border-box"
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#667eea";
+                      e.target.style.backgroundColor = "#fff";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#e5e7eb";
+                      e.target.style.backgroundColor = "#f9fafb";
+                    }}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div style={{
+                  background: "#fef2f2",
+                  color: "#dc2626",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  marginBottom: "24px",
+                  border: "1px solid #fecaca",
+                  fontSize: "14px"
+                }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "16px 0",
+                    fontWeight: "700",
+                    fontSize: "16px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.3)"
+                  }}
+                  onMouseEnter={(e) => !loading && (e.currentTarget.style.transform = "translateY(-2px)")}
+                  onMouseLeave={(e) => !loading && (e.currentTarget.style.transform = "translateY(0)")}
+                >
+                  {loading ? "Sending..." : "Send Reset Link"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setResetPasswordMode(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#667eea",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  textDecoration: "underline"
+                }}
+              >
+                Back to login
+              </button>
+            </form>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -353,20 +561,38 @@ export default function ConsultantLogin() {
                 Remember me
               </label>
 
-              <a
-                href="/consultants/signup"
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#667eea",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  textDecoration: "underline"
-                }}
-              >
-                Sign up?
-              </a>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setResetPasswordMode(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#667eea",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    textDecoration: "underline",
+                    padding: 0
+                  }}
+                >
+                  Forgot password?
+                </button>
+                <a
+                  href="/consultants/signup"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#667eea",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    textDecoration: "underline"
+                  }}
+                >
+                  Sign up?
+                </a>
+              </div>
             </div>
 
             {error && (

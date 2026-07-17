@@ -3778,6 +3778,15 @@ app.delete('/api/consultants/:id', authenticateToken, requireRole(['admin', 'sup
       await db.run('DELETE FROM users WHERE id = ?', consultant.user_id);
       await db.run('DELETE FROM users_auth WHERE id = ?', consultant.user_id);
     }
+    
+    // Hard delete all consultant related records
+    await db.run('DELETE FROM consultant_categories WHERE consultant_id = ?', id);
+    await db.run('DELETE FROM consultant_subcategories WHERE consultant_id = ?', id);
+    await db.run('DELETE FROM consultant_availability WHERE consultant_id = ?', id);
+    await db.run('DELETE FROM services_consultants WHERE consultant_id = ?', id);
+    await db.run('DELETE FROM consultant_google_calendars WHERE consultant_id = ?', id);
+    await db.run('DELETE FROM appointments WHERE consultant_id = ?', id);
+
     await db.run('DELETE FROM consultants WHERE id = ?', id);
     res.json({ success: true });
   } catch (error) {
