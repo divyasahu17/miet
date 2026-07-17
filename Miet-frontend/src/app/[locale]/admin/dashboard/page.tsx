@@ -210,6 +210,10 @@ export default function AdminDashboard() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConsultantId, setDeleteConsultantId] = useState<number | null>(null);
   const [deleteConsultantName, setDeleteConsultantName] = useState<string>('');
+  
+  const [hardDeleteConsultantId, setHardDeleteConsultantId] = useState<number | null>(null);
+  const [hardDeleteConsultantName, setHardDeleteConsultantName] = useState('');
+  const [showHardDeleteModal, setShowHardDeleteModal] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<number | null>(null);
   const [deleteProductName, setDeleteProductName] = useState<string>('');
 
@@ -1142,6 +1146,27 @@ const fetchOrders = async () => {
       setShowDeleteModal(false);
       setDeleteConsultantId(null);
       setDeleteConsultantName('');
+    }
+  }
+
+  function showHardDeleteConsultantModal(id: number, name: string) {
+    setHardDeleteConsultantId(id);
+    setHardDeleteConsultantName(name);
+    setShowHardDeleteModal(true);
+  }
+
+  async function handleHardConsultantDelete() {
+    if (!hardDeleteConsultantId) return;
+    const token = localStorage.getItem("admin_jwt");
+    const res = await fetch(getApiUrl(`api/consultants/${hardDeleteConsultantId}/hard`), {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      fetchConsultants();
+      setShowHardDeleteModal(false);
+      setHardDeleteConsultantId(null);
+      setHardDeleteConsultantName('');
     }
   }
   async function handleConsultantProfile(id?: number) {
@@ -2437,6 +2462,7 @@ useEffect(() => {
   handleWebinarEdit,
   handleWebinarSubmit,
   showDeleteConsultantModal,
+  showHardDeleteConsultantModal,
   isClient,
   isLoaded,
   lastUpdate,
@@ -2779,6 +2805,7 @@ useEffect(() => {
   handleWebinarEdit,
   handleWebinarSubmit,
   showDeleteConsultantModal,
+  showHardDeleteConsultantModal,
   isClient,
   isLoaded,
   lastUpdate,
@@ -4293,6 +4320,47 @@ useEffect(() => {
                 className={styles.extractedStyle220}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHardDeleteModal && (
+        <div className={styles.extractedStyle211} style={{ zIndex: 10000 }}>
+          <div className={styles.extractedStyle212}>
+            <div className={styles.extractedStyle213}>
+              <h3 className={styles.extractedStyle214}>Confirm Hard Delete</h3>
+              <button onClick={() => setShowHardDeleteModal(false)} className={styles.extractedStyle215}>×</button>
+            </div>
+            
+            <div className={styles.extractedStyle216}>
+              <div className={styles.extractedStyle217}>
+                <p>Are you sure you want to <strong>hard delete</strong> the consultant "{hardDeleteConsultantName}"?</p>
+                <p style={{ color: '#dc2626', marginTop: '10px', fontSize: '14px' }}>
+                  Warning: This will permanently delete the consultant and all related records (categories, availability, appointments, etc). This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            
+            <div className={styles.extractedStyle218}>
+              <button
+                onClick={() => {
+                  setShowHardDeleteModal(false);
+                  setHardDeleteConsultantId(null);
+                  setHardDeleteConsultantName('');
+                }}
+                className={styles.extractedStyle219}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await handleHardConsultantDelete();
+                }}
+                className={styles.extractedStyle220}
+              >
+                Hard Delete
               </button>
             </div>
           </div>

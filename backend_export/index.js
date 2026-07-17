@@ -3778,6 +3778,23 @@ app.delete('/api/consultants/:id', authenticateToken, requireRole(['admin', 'sup
       await db.run('DELETE FROM users WHERE id = ?', consultant.user_id);
       await db.run('DELETE FROM users_auth WHERE id = ?', consultant.user_id);
     }
+    await db.run('DELETE FROM consultants WHERE id = ?', id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting consultant:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Hard Delete consultant (superadmin only)
+app.delete('/api/consultants/:id/hard', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const consultant = await db.get('SELECT user_id FROM consultants WHERE id = ?', id);
+    if (consultant) {
+      await db.run('DELETE FROM users WHERE id = ?', consultant.user_id);
+      await db.run('DELETE FROM users_auth WHERE id = ?', consultant.user_id);
+    }
     
     // Hard delete all consultant related records
     await db.run('DELETE FROM consultant_categories WHERE consultant_id = ?', id);
@@ -3790,7 +3807,7 @@ app.delete('/api/consultants/:id', authenticateToken, requireRole(['admin', 'sup
     await db.run('DELETE FROM consultants WHERE id = ?', id);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting consultant:', error);
+    console.error('Error hard deleting consultant:', error);
     res.status(500).json({ error: 'Database error' });
   }
 });

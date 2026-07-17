@@ -21,6 +21,7 @@ export default function ConsultantsTab(props: any) {
     handleConsultantProfile,
     handleConsultantEdit,
     showDeleteConsultantModal,
+    showHardDeleteConsultantModal,
     DataTable,
     page,
     setPage,
@@ -229,6 +230,7 @@ export default function ConsultantsTab(props: any) {
                 setShowConsultantModal(true);
               }}
               onDelete={(consultant: any) => showDeleteConsultantModal(consultant.id!, consultant.name)}
+              onHardDelete={(consultant: any) => showHardDeleteConsultantModal(consultant.id!, consultant.name)}
               searchPlaceholder="Search consultants..."
               title="Consultants"
             />

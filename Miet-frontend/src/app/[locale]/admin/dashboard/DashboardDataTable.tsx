@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { FaEdit, FaEye, FaSearch, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaEye, FaSearch, FaTrash, FaUserSlash } from 'react-icons/fa';
 import styles from './admin.module.css';
 import { filterAndSortData, getTotalPages, paginateData } from './dashboard.utils';
 
@@ -26,6 +26,7 @@ type DashboardTableProps = {
   columns: DashboardTableColumn[];
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
+  onHardDelete?: (item: any) => void;
   onView?: (item: any) => void;
   searchPlaceholder?: string;
   title?: string;
@@ -38,6 +39,7 @@ export const DashboardDataTable = ({
   columns,
   onEdit,
   onDelete,
+  onHardDelete,
   onView,
   searchPlaceholder = 'Search...',
   title = 'Data Table'
@@ -111,7 +113,7 @@ export const DashboardDataTable = ({
                     </div>
                   </th>
                 ))}
-                {(onEdit || onDelete || onView) && (
+                {(onEdit || onDelete || onHardDelete || onView) && (
                   <th className={styles.extractedStyle14}>Actions</th>
                 )}
               </tr>
@@ -127,7 +129,7 @@ export const DashboardDataTable = ({
                       {column.render ? column.render(row[column.key], row) : row[column.key]}
                     </td>
                   ))}
-                  {(onEdit || onDelete || onView) && (
+                  {(onEdit || onDelete || onHardDelete || onView) && (
                     <td className={styles.extractedStyle16}>
                       <div className={styles.extractedStyle17}>
                         {onView && (
@@ -158,6 +160,17 @@ export const DashboardDataTable = ({
                             onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'}
                           >
                             <FaTrash size={14} /> Delete
+                          </button>
+                        )}
+                        {onHardDelete && (
+                          <button
+                            onClick={() => onHardDelete(row)}
+                            className={styles.extractedStyle20}
+                            style={{ background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626', border: '1px solid #dc2626' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(220, 38, 38, 1)'; e.currentTarget.style.color = '#fff' }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'; e.currentTarget.style.color = '#dc2626' }}
+                          >
+                            <FaUserSlash size={14} /> Hard Delete
                           </button>
                         )}
                       </div>
