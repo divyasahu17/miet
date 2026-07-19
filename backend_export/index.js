@@ -1358,12 +1358,12 @@ async function deliverDigitalProducts(orderId) {
     const mailOptions = {
       from: SMTP_FROM || SMTP_USER,
       to: userEmail,
-      subject: \`Your Order #\${order.order_number || orderId} is Confirmed - Access Your Products\`,
+      subject: `Your Order #${order.order_number || orderId} is Confirmed - Access Your Products`,
       html: emailContent
     };
 
     const result = await emailTransporter.sendMail(mailOptions);
-    console.log(\`Delivered digital products for order \${orderId} to \${userEmail}. Result:\`, result.messageId);
+    console.log(`Delivered digital products for order ${orderId} to ${userEmail}. Result:`, result.messageId);
 
   } catch (error) {
     console.error('Error delivering digital products for order:', orderId, error);
