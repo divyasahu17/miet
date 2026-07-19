@@ -87,6 +87,7 @@ export default function ConsultantsTab(props: any) {
                     speciality: '',
                     city: '',
                     address: '',
+                    website: '',
                     description: '',
                     aadhar: '',
                     bank_account: '',

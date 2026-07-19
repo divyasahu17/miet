@@ -745,6 +745,7 @@ async function setupDatabase() {
   await addConsultantCol('promoted_by_admin', 'BOOLEAN DEFAULT 0');
   await addConsultantCol('approval_status', "TEXT DEFAULT 'pending'");
   await addConsultantCol('approval_reason', 'TEXT');
+  await addConsultantCol('website', 'TEXT');
 
   // Note: featured column is now included in the main CREATE TABLE statement
 
@@ -3789,7 +3790,7 @@ app.get('/api/consultants/:id', authenticateToken, async (req, res) => {
 });
 // Create consultant (superadmin only)
 app.post('/api/consultants', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
-  const { username, password, name, email, phone, image, description, tagline, location_lat, location_lng, address, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured } = req.body;
+  const { username, password, name, email, phone, image, description, tagline, location_lat, location_lng, address, website, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured } = req.body;
   if (!username || !password || !name || !email || !city || city.trim() === '') return res.status(400).json({ error: 'Missing required fields (city is required)' });
   try {
     // Check if consultant profile already exists
@@ -3820,8 +3821,8 @@ app.post('/api/consultants', authenticateToken, requireRole(['admin', 'superadmi
     }
     // Create consultant profile
     const result = await db.run(
-      `INSERT INTO consultants (user_id, name, email, phone, image, description, tagline, location_lat, location_lng, address, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      user_id, name, email, phone, imagePath, description, tagline, location_lat, location_lng, address, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status || 'offline', city, featured ? 1 : 0
+      `INSERT INTO consultants (user_id, name, email, phone, image, description, tagline, location_lat, location_lng, address, website, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status, city, featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      user_id, name, email, phone, imagePath, description, tagline, location_lat, location_lng, address, website, speciality, id_proof_type, id_proof_url, aadhar, bank_account, bank_ifsc, status || 'offline', city, featured ? 1 : 0
     );
     res.json({ id: result.lastID, user_id });
   } catch (err) {
@@ -3866,8 +3867,11 @@ app.put('/api/consultants/:id', authenticateToken, async (req, res) => {
 
   // Only update allowed fields
   const fields = [
-    'name', 'email', 'phone', 'image', 'description', 'tagline', 'location_lat', 'location_lng', 'address', 'speciality', 'id_proof_type', 'id_proof_url', 'aadhar', 'bank_account', 'bank_ifsc', 'status', 'city', 'featured', 'consultation_price'
+    'name', 'email', 'phone', 'image', 'description', 'tagline', 'location_lat', 'location_lng', 'speciality', 'id_proof_type', 'id_proof_url', 'aadhar', 'bank_account', 'bank_ifsc', 'status', 'city', 'consultation_price'
   ];
+  if (req.user.role === 'superadmin' || req.user.role === 'admin') {
+    fields.push('featured', 'address', 'website');
+  }
   const updates = [];
   const values = [];
   for (const field of fields) {

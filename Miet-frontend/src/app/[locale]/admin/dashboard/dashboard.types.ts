@@ -25,6 +25,7 @@ export interface Consultant {
   location_lat?: string;
   location_lng?: string;
   address?: string;
+  website?: string;
   speciality?: string;
   id_proof_type?: string;
   id_proof_url?: string;
