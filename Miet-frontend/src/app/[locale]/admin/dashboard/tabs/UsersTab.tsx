@@ -63,7 +63,7 @@ export default function UsersTab(props: any) {
         </div>
 
         <DataTable
-          data={users}
+          data={users.filter((u: any) => u.role === 'users' || u.role === 'user')}
           columns={[
             { key: 'username', label: 'Username', sortable: true },
             { key: 'role', label: 'Role', sortable: true },
