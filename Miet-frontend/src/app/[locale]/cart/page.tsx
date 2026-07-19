@@ -342,7 +342,8 @@ export default function CartPage() {
 
       setCheckoutLoading(true);
 
-      const res = await fetch('https://miet.life/api/create-order', {
+      const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://miet.life';
+      const res = await fetch(`${apiUrl}/api/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -423,7 +424,8 @@ const handleCheckoutConfirm = async () => {
 
   try {
 
-    const res = await fetch("https://miet.life/api/create-order", {
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://miet.life';
+    const res = await fetch(`${apiUrl}/api/create-order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -1462,7 +1464,8 @@ id: 'apple_pay', label: 'Apple Pay', icon: <FaApplePay />, description: 'Contact
 
                             if (orderId) {
 
-                              const res = await fetch("https://miet.life/api/payment-success", {
+                              const apiUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://miet.life';
+                              const res = await fetch(`${apiUrl}/api/payment-success`, {
                                 method: "POST",
                                 headers: {
                                   "Content-Type": "application/json"
