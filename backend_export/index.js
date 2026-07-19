@@ -1279,6 +1279,97 @@ emailTransporter.verify((error, success) => {
   }
 });
 
+// Function to deliver digital products via email after successful payment
+async function deliverDigitalProducts(orderId) {
+  try {
+    const order = await db.get('SELECT * FROM orders_new WHERE id = ?', [orderId]);
+    if (!order) return;
+
+    let userEmail = '';
+    let userName = 'Customer';
+    
+    // Try getting user email from users_auth
+    if (order.user_id) {
+      const userAuth = await db.get('SELECT email, first_name, last_name FROM users_auth WHERE id = ?', [order.user_id]);
+      if (userAuth) {
+        userEmail = userAuth.email;
+        userName = `${userAuth.first_name} ${userAuth.last_name}`.trim();
+      }
+    }
+
+    // Try getting email from delivery_address JSON if not found or as fallback
+    if (!userEmail && order.delivery_address) {
+      try {
+        const addressData = JSON.parse(order.delivery_address);
+        if (addressData.email) userEmail = addressData.email;
+        if (addressData.firstName) userName = `${addressData.firstName} ${addressData.lastName || ''}`.trim();
+      } catch(e) {}
+    }
+
+    if (!userEmail) {
+      console.error('Cannot deliver products: No email found for order', orderId);
+      return;
+    }
+
+    // Get order items and their associated product details
+    const orderItems = await db.all('SELECT * FROM order_items_new WHERE order_id = ?', [orderId]);
+    if (!orderItems || orderItems.length === 0) return;
+
+    let emailContent = `<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">`;
+    emailContent += `<div style="background-color: #667eea; padding: 20px; text-align: center; color: #fff;">
+                       <h1 style="margin: 0; font-size: 24px;">Thank You For Your Purchase!</h1>
+                     </div>`;
+    emailContent += `<div style="padding: 20px;">
+                       <p>Hi ${userName},</p>
+                       <p>We've successfully received your payment for order <strong>#${order.order_number || orderId}</strong>.</p>
+                       <p>Here are the details and access links for your purchased products:</p>`;
+    
+    let digitalProductsFound = false;
+
+    for (const item of orderItems) {
+      const product = await db.get('SELECT * FROM products WHERE id = ?', [item.product_id]);
+      
+      emailContent += `<div style="margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 6px;">`;
+      emailContent += `<h3 style="margin-top: 0; color: #444;">${item.product_name}</h3>`;
+      emailContent += `<p>Quantity: ${item.quantity} | Total: $${item.total_price}</p>`;
+      
+      if (product) {
+        let links = [];
+        if (product.pdf_file) links.push(`<a href="${product.pdf_file}" style="display: inline-block; background: #667eea; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px;">Download PDF</a>`);
+        if (product.download_link) links.push(`<a href="${product.download_link}" style="display: inline-block; background: #667eea; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px;">Download Product</a>`);
+        if (product.video_url) links.push(`<a href="${product.video_url}" style="display: inline-block; background: #764ba2; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 4px; margin-right: 10px;">Watch Video</a>`);
+        
+        if (links.length > 0) {
+          digitalProductsFound = true;
+          emailContent += `<div style="margin-top: 15px;">${links.join('')}</div>`;
+        } else if (product.product_type !== 'digital') {
+          emailContent += `<p style="font-size: 14px; color: #666;">This is a physical item. We will process and ship it to your specified delivery address shortly.</p>`;
+        }
+      } else {
+        emailContent += `<p style="font-size: 14px; color: #666;">Product details not found.</p>`;
+      }
+      emailContent += `</div>`;
+    }
+
+    emailContent += `<p>If you have any questions or need support, please contact us.</p>
+                     <p>Best regards,<br>The Miet Team</p>
+                     </div></div>`;
+
+    const mailOptions = {
+      from: SMTP_FROM || SMTP_USER,
+      to: userEmail,
+      subject: \`Your Order #\${order.order_number || orderId} is Confirmed - Access Your Products\`,
+      html: emailContent
+    };
+
+    const result = await emailTransporter.sendMail(mailOptions);
+    console.log(\`Delivered digital products for order \${orderId} to \${userEmail}. Result:\`, result.messageId);
+
+  } catch (error) {
+    console.error('Error delivering digital products for order:', orderId, error);
+  }
+}
+
 // Google Calendar API utility functions
 async function getGoogleCalendarClient(userId, userType = 'user') {
   try {
@@ -5462,6 +5553,16 @@ app.post('/api/razorpay/webhook', async (req, res) => {
           SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP
           WHERE id = (SELECT order_id FROM payments WHERE transaction_id = ?)
         `, [payment.id]);
+        
+        // Deliver digital products via email
+        try {
+          const paidOrder = await db.get('SELECT order_id FROM payments WHERE transaction_id = ?', [payment.id]);
+          if (paidOrder && paidOrder.order_id) {
+            await deliverDigitalProducts(paidOrder.order_id);
+          }
+        } catch (deliveryError) {
+          console.error('Error initiating product delivery:', deliveryError);
+        }
         break;
 
       case 'payment.failed':
