@@ -2111,10 +2111,15 @@ app.post('/api/reset-password/request', async (req, res) => {
   }
   
   try {
-    const user = await db.get('SELECT email, first_name FROM users_auth WHERE email = ?', email);
+    let user = await db.get('SELECT email, first_name FROM users_auth WHERE email = ?', email);
+    
+    // If not found in users_auth, check consultants table
     if (!user) {
-      // Return success to prevent email enumeration
-      return res.json({ success: true, message: 'If that email exists, an OTP will be sent.' });
+      user = await db.get('SELECT email, first_name FROM consultants WHERE email = ?', email);
+    }
+    
+    if (!user) {
+      return res.json({ success: false, message: 'Email is not registered. Please sign up first.' });
     }
 
     // Generate 6-digit OTP
@@ -2159,7 +2164,7 @@ app.post('/api/reset-password/request', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'If that email exists, an OTP will be sent.',
+      message: 'OTP sent successfully to your email.',
       otp: otp // Added for testing purposes so user can see it in Network tab
     });
   } catch (error) {
