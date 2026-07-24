@@ -430,7 +430,7 @@ export default function WebinarsPage() {
                 </div>
 
                 {/* Action Button */}
-                {webinar.is_free || (isUserLoggedIn && registeredWebinarIds.includes(webinar.id)) ? (
+                {(isUserLoggedIn && registeredWebinarIds.includes(webinar.id)) ? (
                   webinar.google_meet_link ? (
                     <a
                       href={webinar.google_meet_link}
@@ -500,7 +500,7 @@ export default function WebinarsPage() {
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    💳 Pay to Join (₹{webinar.price})
+                    {webinar.is_free ? '📝 Register for Free' : `💳 Pay to Join (₹${webinar.price})`}
                   </button>
                 )}
               </div>
