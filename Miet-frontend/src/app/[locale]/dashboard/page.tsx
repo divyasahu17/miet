@@ -1929,7 +1929,7 @@ export default function UserDashboard() {
                           }}>
                             {webinar.status}
                           </span>
-                          {webinar.google_meet_link && (
+                          {webinar.google_meet_link ? (
                             <a
                               href={webinar.google_meet_link}
                               target="_blank"
@@ -1946,6 +1946,22 @@ export default function UserDashboard() {
                             >
                               🎥 Join Webinar
                             </a>
+                          ) : (
+                            <button
+                              onClick={() => router.push('/services/webinars')}
+                              style={{
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              View & Register
+                            </button>
                           )}
                         </div>
                       </div>
