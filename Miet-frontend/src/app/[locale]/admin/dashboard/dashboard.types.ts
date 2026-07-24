@@ -41,6 +41,7 @@ export interface Consultant {
   slots?: string[];
   city?: string;
   country?: string;
+  commission_percent?: number;
 }
 
 export interface User {

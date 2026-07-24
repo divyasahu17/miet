@@ -3543,6 +3543,19 @@ useEffect(() => {
                           onBlur={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.2)'}
                         />
                       </div>
+                      <div className={styles.extractedStyle93}>
+                        <label className={styles.extractedStyle94}>Commission Percent (%)</label>
+                        <input
+                          type="number"
+                          name="commission_percent"
+                          value={consultantForm.commission_percent || ''}
+                          onChange={handleConsultantFormChange}
+                          placeholder="e.g. 10 (Leave blank for default)"
+                          className={styles.extractedStyle95}
+                          onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                          onBlur={(e) => e.target.style.borderColor = 'rgba(102, 126, 234, 0.2)'}
+                        />
+                      </div>
                     </div>
 
                     <div>

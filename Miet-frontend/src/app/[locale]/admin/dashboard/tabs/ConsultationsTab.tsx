@@ -53,6 +53,68 @@ export default function ConsultationsTab(props: any) {
                       🔗 Setup Google OAuth
                     </button>
                   )}
+                  <a
+                    href={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api/admin/consultations/export` : '#'}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 20px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      textDecoration: 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    ⬇ Export CSV
+                  </a>
+                  
+                  <label
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '12px 20px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <FaUpload size={16} />
+                    Bulk Upload
+                    <input type="file" accept=".csv" style={{ display: 'none' }} onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const token = localStorage.getItem('token');
+                        const res = await fetch(`${window.location.protocol}//${window.location.hostname}:5000/api/admin/consultations/import`, {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}` },
+                          body: formData
+                        });
+                        const data = await res.json();
+                        alert(data.message || 'Upload complete');
+                        if (data.success) {
+                          window.location.reload();
+                        }
+                      } catch (err) {
+                        alert('Upload failed');
+                      }
+                    }} />
+                  </label>
+
                   <button
                     onClick={() => {
                       setConsultationForm({

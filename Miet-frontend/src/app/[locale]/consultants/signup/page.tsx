@@ -20,6 +20,10 @@ export default function ConsultantSignup() {
     city: "",
     description: "",
     tagline: "",
+    address: "",
+    aadhar: "",
+    bank_account: "",
+    bank_ifsc: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -68,6 +72,10 @@ export default function ConsultantSignup() {
       formData.append("city", form.city);
       formData.append("description", form.description);
       formData.append("tagline", form.tagline);
+      formData.append("address", form.address);
+      formData.append("aadhar", form.aadhar);
+      formData.append("bank_account", form.bank_account);
+      formData.append("bank_ifsc", form.bank_ifsc);
       formData.append("id_proof_type", idProofType);
       if (idProofFile) {
         formData.append("id_proof", idProofFile);
@@ -325,12 +333,28 @@ export default function ConsultantSignup() {
                   <input name="city" type="text" value={form.city} onChange={handleChange} placeholder="e.g., Gurgaon" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Tagline</label> 
+                  <label style={labelStyle}>Tagline</label>
                   <input name="tagline" type="text" value={form.tagline} onChange={handleChange} placeholder="Short professional tagline" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Description / Bio</label>
-                  <textarea name="description" value={form.description} onChange={handleChange} placeholder="Tell us about your experience, qualifications, and services..." rows={4} style={{ ...inputStyle, resize: "vertical" as const }} />
+                  <label style={labelStyle}>Full Address</label>
+                  <input name="address" type="text" value={form.address} onChange={handleChange} placeholder="Your complete address" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Aadhar Number</label>
+                  <input name="aadhar" type="text" value={form.aadhar} onChange={handleChange} placeholder="12-digit Aadhar number" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Bank Account Number</label>
+                  <input name="bank_account" type="text" value={form.bank_account} onChange={handleChange} placeholder="Bank account for payouts" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Bank IFSC Code</label>
+                  <input name="bank_ifsc" type="text" value={form.bank_ifsc} onChange={handleChange} placeholder="e.g., SBIN0001234" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>About You</label>
+                  <textarea name="description" value={form.description} onChange={handleChange} placeholder="Detailed description of your experience..." style={{ ...inputStyle, minHeight: "100px" }} />
                 </div>
                 <div style={{ display: "flex", gap: "12px" }}>
                   <button

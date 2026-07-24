@@ -16,6 +16,9 @@ import dotenv from 'dotenv';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import csv from 'csv-parser';
+import { Readable } from 'stream';
+import { Parser } from 'json2csv';
 // const JWT_SECRET = process.env.JWT_SECRET || 'miet_secret_key_2024';
 
 // Load environment variables new
@@ -545,6 +548,7 @@ async function setupDatabase() {
       bank_account TEXT,
       bank_ifsc TEXT,
       city TEXT,
+      commission_percent REAL,
       featured BOOLEAN DEFAULT 0,
       status TEXT CHECK(status IN ('online', 'offline')) NOT NULL DEFAULT 'offline',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -1169,6 +1173,9 @@ async function setupDatabase() {
 
         try {
           await db.exec(`ALTER TABLE consultants ADD COLUMN wallet_balance REAL DEFAULT 0.00;`);
+        } catch(e) {}
+        try {
+          await db.exec(`ALTER TABLE consultants ADD COLUMN commission_percent REAL;`);
         } catch (e) {
           if (!e.message.includes('duplicate column name')) console.error(e);
         }
@@ -1325,13 +1332,27 @@ async function deliverDigitalProducts(orderId) {
                        <p>Here are the details and access links for your purchased products:</p>`;
     
     let digitalProductsFound = false;
+    let adminEmailContent = `<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                             <div style="background-color: #f59e0b; padding: 20px; text-align: center; color: #fff;">
+                               <h1 style="margin: 0; font-size: 24px;">New Order Placed: #${order.order_number || orderId}</h1>
+                             </div>
+                             <div style="padding: 20px;">
+                               <p>A new order has been placed by <strong>${userName}</strong> (${userEmail}).</p>
+                               <h3>Order Details:</h3>`;
+                               
+    const consultantEmails = {}; // { consultantId: { email: '', html: '' } }
 
     for (const item of orderItems) {
       const product = await db.get('SELECT * FROM products WHERE id = ?', [item.product_id]);
       
-      emailContent += `<div style="margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 6px;">`;
-      emailContent += `<h3 style="margin-top: 0; color: #444;">${item.product_name}</h3>`;
-      emailContent += `<p>Quantity: ${item.quantity} | Total: $${item.total_price}</p>`;
+      const itemHtml = `
+        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 6px;">
+          <h3 style="margin-top: 0; color: #444;">${item.product_name}</h3>
+          <p>Quantity: ${item.quantity} | Total: ₹${item.total_price}</p>
+      `;
+      
+      emailContent += itemHtml;
+      adminEmailContent += itemHtml;
       
       if (product) {
         let links = [];
@@ -1345,25 +1366,78 @@ async function deliverDigitalProducts(orderId) {
         } else if (product.product_type !== 'digital') {
           emailContent += `<p style="font-size: 14px; color: #666;">This is a physical item. We will process and ship it to your specified delivery address shortly.</p>`;
         }
+        
+        // Add to consultant email
+        if (product.consultant_id) {
+          if (!consultantEmails[product.consultant_id]) {
+            const consultant = await db.get('SELECT email, name FROM consultants WHERE id = ?', [product.consultant_id]);
+            if (consultant && consultant.email) {
+              consultantEmails[product.consultant_id] = {
+                email: consultant.email,
+                name: consultant.name,
+                html: `<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+                         <div style="background-color: #10b981; padding: 20px; text-align: center; color: #fff;">
+                           <h1 style="margin: 0; font-size: 24px;">New Sale: Order #${order.order_number || orderId}</h1>
+                         </div>
+                         <div style="padding: 20px;">
+                           <p>Hi ${consultant.name},</p>
+                           <p>You have a new sale! A customer (${userName}) has purchased your product(s).</p>
+                           <h3>Sale Details:</h3>`
+              };
+            }
+          }
+          if (consultantEmails[product.consultant_id]) {
+            consultantEmails[product.consultant_id].html += itemHtml + `</div>`;
+          }
+        }
       } else {
         emailContent += `<p style="font-size: 14px; color: #666;">Product details not found.</p>`;
       }
+      
       emailContent += `</div>`;
+      adminEmailContent += `</div>`;
     }
 
     emailContent += `<p>If you have any questions or need support, please contact us.</p>
                      <p>Best regards,<br>The Miet Team</p>
                      </div></div>`;
+                     
+    adminEmailContent += `</div></div>`;
 
+    // Send to User
     const mailOptions = {
       from: SMTP_FROM || SMTP_USER,
       to: userEmail,
       subject: `Your Order #${order.order_number || orderId} is Confirmed - Access Your Products`,
       html: emailContent
     };
+    await emailTransporter.sendMail(mailOptions);
+    console.log(`Delivered digital products for order ${orderId} to user ${userEmail}.`);
 
-    const result = await emailTransporter.sendMail(mailOptions);
-    console.log(`Delivered digital products for order ${orderId} to ${userEmail}. Result:`, result.messageId);
+    // Send to Admin
+    let adminEmail = 'admin@miet.com';
+    const superAdmin = await db.get("SELECT username FROM users WHERE role = 'superadmin' LIMIT 1");
+    if (superAdmin && superAdmin.username) adminEmail = superAdmin.username;
+    
+    await emailTransporter.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to: adminEmail,
+      subject: `New Order Received #${order.order_number || orderId}`,
+      html: adminEmailContent
+    });
+
+    // Send to Consultants
+    for (const consultantId in consultantEmails) {
+      const c = consultantEmails[consultantId];
+      c.html += `</div></div>`;
+      await emailTransporter.sendMail({
+        from: SMTP_FROM || SMTP_USER,
+        to: c.email,
+        subject: `New Sale - Order #${order.order_number || orderId}`,
+        html: c.html
+      });
+      console.log(`Sent sale notification to consultant ${c.email}`);
+    }
 
   } catch (error) {
     console.error('Error delivering digital products for order:', orderId, error);
@@ -2111,15 +2185,19 @@ app.post('/api/reset-password/request', async (req, res) => {
   }
   
   try {
-    let user = await db.get('SELECT email, first_name FROM users_auth WHERE email = ?', email);
-    
-    // If not found in users_auth, check consultants table
-    if (!user) {
-      user = await db.get('SELECT email, first_name FROM consultants WHERE email = ?', email);
+    const referer = req.headers.referer || '';
+    let user;
+
+    if (referer.includes('/consultants/')) {
+      // It's a consultant trying to reset password
+      user = await db.get('SELECT email, name AS first_name FROM consultants WHERE email = ?', email);
+    } else {
+      // It's a normal user trying to reset password
+      user = await db.get('SELECT email, first_name FROM users_auth WHERE email = ?', email);
     }
     
     if (!user) {
-      return res.json({ success: false, message: 'Email is not registered. Please sign up first.' });
+      return res.status(404).json({ error: 'Email is not registered. Please sign up first.' });
     }
 
     // Generate 6-digit OTP
@@ -2134,10 +2212,15 @@ app.post('/api/reset-password/request', async (req, res) => {
 
     // Send Email
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: process.env.SMTP_HOST || 'mail.miet.life',
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: true,
       auth: {
-        user: process.env.SMTP_USER || 'divyasahu175@gmail.com',
-        pass: process.env.SMTP_PASS || 'your_app_password_here'
+        user: process.env.SMTP_USER || 'info@miet.life',
+        pass: process.env.SMTP_PASS || 'mietlife@120'
+      },
+      tls: {
+        rejectUnauthorized: false
       }
     });
 
@@ -3703,7 +3786,7 @@ app.delete('/api/consultants/availability/:id', authenticateToken, async (req, r
 // --- Consultant Registration (public) ---
 app.post('/api/consultants/register', upload.single('id_proof'), async (req, res) => {
   try {
-    const { name, email, phone, password, speciality, city, description, tagline, id_proof_type } = req.body;
+    const { name, email, phone, password, speciality, city, description, tagline, id_proof_type, address, aadhar, bank_account, bank_ifsc } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -3733,10 +3816,10 @@ app.post('/api/consultants/register', upload.single('id_proof'), async (req, res
 
     // Create consultant profile with pending approval status
     await db.run(
-      `INSERT INTO consultants (user_id, name, email, phone, description, tagline, speciality, city, id_proof_type, id_proof_url, status, featured, approval_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 0, 'pending')`,
+      `INSERT INTO consultants (user_id, name, email, phone, description, tagline, speciality, city, address, aadhar, bank_account, bank_ifsc, id_proof_type, id_proof_url, status, featured, approval_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 0, 'pending')`,
       userId, name, email, phone || null, description || null, tagline || null,
-      speciality || null, city || null, id_proof_type || null, id_proof_url
+      speciality || null, city || null, address || null, aadhar || null, bank_account || null, bank_ifsc || null, id_proof_type || null, id_proof_url
     );
 
     res.status(201).json({
@@ -4035,10 +4118,10 @@ app.put('/api/consultants/:id', authenticateToken, async (req, res) => {
 
   // Only update allowed fields
   const fields = [
-    'name', 'email', 'phone', 'image', 'description', 'tagline', 'location_lat', 'location_lng', 'speciality', 'id_proof_type', 'id_proof_url', 'aadhar', 'bank_account', 'bank_ifsc', 'status', 'city', 'consultation_price'
+    'name', 'email', 'phone', 'image', 'description', 'tagline', 'address', 'location_lat', 'location_lng', 'speciality', 'id_proof_type', 'id_proof_url', 'aadhar', 'bank_account', 'bank_ifsc', 'status', 'city', 'consultation_price'
   ];
   if (req.user.role === 'superadmin' || req.user.role === 'admin') {
-    fields.push('featured', 'address', 'website');
+    fields.push('featured', 'website', 'commission_percent');
   }
   const updates = [];
   const values = [];
@@ -4970,7 +5053,10 @@ app.post('/api/orders', authenticateUser, checkoutLimiter, async (req, res) => {
           else if (type.includes('gadget')) commissionKey = 'commission_gadget';
           else if (type.includes('app')) commissionKey = 'commission_app';
           
-          const commissionPercent = settings[commissionKey] || 0;
+          const consultantData = await db.get('SELECT commission_percent FROM consultants WHERE id = ?', [item.consultantId]);
+          const customCommission = consultantData ? consultantData.commission_percent : null;
+          
+          let commissionPercent = customCommission !== null ? customCommission : (settings[commissionKey] || 0);
           const commissionAmount = (item.totalPrice * commissionPercent) / 100;
           const earningAmount = item.totalPrice - commissionAmount;
 
@@ -5999,6 +6085,30 @@ app.post('/api/appointments/confirm-payment', async (req, res) => {
         await sendEmailNotification(attendeeEmails, emailSubject, emailHtml, emailHtml.replace(/<[^>]*>/g, ''));
       }
 
+
+      // --- Commission & Wallet Update ---
+      const settingsResult = await db.all('SELECT setting_key, setting_value FROM admin_settings');
+      const settings = {};
+      settingsResult.forEach(s => settings[s.setting_key] = parseFloat(s.setting_value) || 0);
+      
+      const customCommission = consultant.commission_percent !== undefined ? consultant.commission_percent : null;
+      let commissionPercent = customCommission !== null ? customCommission : (settings['commission_appointment'] || 10);
+      const commissionAmount = (appointment.price * commissionPercent) / 100;
+      const earningAmount = appointment.price - commissionAmount;
+
+      if (earningAmount > 0) {
+        await db.run(
+          'UPDATE consultants SET wallet_balance = wallet_balance + ? WHERE id = ?',
+          [earningAmount, consultant.id]
+        );
+        await db.run(
+          `INSERT INTO wallet_transactions (consultant_id, order_id, amount, type, description)
+           VALUES (?, ?, ?, 'earning', ?)`,
+          [consultant.id, 'APT-' + appointment_id, earningAmount, `Earnings for Appointment ${appointment.title} (Price: ₹${appointment.price}, Commission: ${commissionPercent}%)`]
+        );
+      }
+      // ----------------------------------
+
     } catch (emailError) {
       console.error('Email notification error:', emailError);
     }
@@ -7004,6 +7114,74 @@ app.post('/api/admin/consultations', authenticateToken, requireRole(['admin', 's
   }
 });
 
+// GET /api/admin/consultations/export - Export consultations to CSV
+app.get('/api/admin/consultations/export', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
+  try {
+    const consultations = await db.all(
+      `SELECT a.appointment_id, a.title, a.start_time, a.end_time, a.duration_minutes, a.meeting_type, a.status, a.price, a.payment_status,
+              c.name as consultant_name, c.email as consultant_email,
+              COALESCE(u.email, a.user_email) as user_email,
+              COALESCE(u.first_name || ' ' || u.last_name, a.user_name) as user_name
+       FROM appointments a
+       LEFT JOIN consultants c ON a.consultant_id = c.id
+       LEFT JOIN users u ON a.user_id = u.id`
+    );
+
+    const json2csvParser = new Parser();
+    const csvData = json2csvParser.parse(consultations);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('consultations.csv');
+    return res.send(csvData);
+  } catch (error) {
+    console.error('Error exporting consultations:', error);
+    res.status(500).json({ success: false, message: 'Export failed' });
+  }
+});
+
+// POST /api/admin/consultations/import - Bulk upload appointments from CSV
+app.post('/api/admin/consultations/import', authenticateToken, requireRole(['admin', 'superadmin']), upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+
+  const results = [];
+  try {
+    // Handling buffer or file path based on multer config
+    let stream;
+    if (req.file.buffer) {
+      stream = Readable.from(req.file.buffer);
+    } else {
+      stream = fs.createReadStream(req.file.path);
+    }
+    
+    stream.pipe(csv())
+      .on('data', (data) => results.push(data))
+      .on('end', async () => {
+        let imported = 0;
+        for (const row of results) {
+          // Minimal mapping to insert appointments
+          const appointmentId = row.appointment_id || generateAppointmentId();
+          try {
+            await db.run(
+              `INSERT INTO appointments 
+               (appointment_id, title, start_time, end_time, duration_minutes, meeting_type, status, price, payment_status, user_email, user_name) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              appointmentId, row.title || 'Imported Appointment', row.start_time, row.end_time, row.duration_minutes || 60,
+              row.meeting_type || 'consultation', row.status || 'scheduled', row.price || 0, row.payment_status || 'paid',
+              row.user_email || '', row.user_name || ''
+            );
+            imported++;
+          } catch (e) {
+            console.error('Error importing row', row, e);
+          }
+        }
+        res.json({ success: true, message: `Imported ${imported} appointments` });
+      });
+  } catch (error) {
+    console.error('Error importing consultations:', error);
+    res.status(500).json({ success: false, message: 'Import failed' });
+  }
+});
+
 // GET /api/admin/consultations - Get all consultations (Admin only)
 app.get('/api/admin/consultations', authenticateToken, requireRole(['admin', 'superadmin']), async (req, res) => {
   try {
@@ -7428,12 +7606,16 @@ app.get('/api/webinars/public', async (req, res) => {
 
     res.json({
       success: true,
-      webinars: webinars.map(web => ({
-        ...web,
-        registration_fields_json: JSON.parse(web.registration_fields_json || '[]'),
-        reminder_schedule_json: JSON.parse(web.reminder_schedule_json || '[]'),
-        attendee_emails: JSON.parse(web.attendee_emails || '[]')
-      }))
+      webinars: webinars.map(web => {
+        // Exclude sensitive links from public API
+        const { google_meet_link, manual_link, joining_email_template, reminder_email_template, ...safeWeb } = web;
+        return {
+          ...safeWeb,
+          registration_fields_json: JSON.parse(safeWeb.registration_fields_json || '[]'),
+          reminder_schedule_json: JSON.parse(safeWeb.reminder_schedule_json || '[]'),
+          attendee_emails: JSON.parse(safeWeb.attendee_emails || '[]')
+        };
+      })
     });
 
   } catch (error) {
