@@ -11982,14 +11982,15 @@ app.post('/api/webinars/:id/register', authenticateUser, async (req, res) => {
       <p>Time: ${time}</p>
       ${userEmailBody}
     `;
-    await sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail);
+    // Send emails asynchronously so it doesn't block the API response
+    sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail).catch(console.error);
 
     if (webinar.organizer_email) {
       const consultantEmailBody = `
         <h2>New Registration</h2>
         <p>A new user (${name} - ${email}) has registered for your free webinar <b>${webinar.title}</b>.</p>
       `;
-      await sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody);
+      sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody).catch(console.error);
     }
 
     res.json({ success: true, message: 'Registered successfully' });
@@ -12047,14 +12048,15 @@ app.post('/api/webinars/:id/verify-payment', async (req, res) => {
         <p>Time: ${time}</p>
         ${userEmailBody}
       `;
-      await sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail);
+      // Send emails asynchronously
+      sendEmailNotification(email, `Registration Confirmed: ${webinar.title}`, fullUserEmail).catch(console.error);
 
       if (webinar.organizer_email) {
         const consultantEmailBody = `
           <h2>New Registration & Payment</h2>
           <p>A new user (${name} - ${email}) has successfully paid and registered for your webinar <b>${webinar.title}</b>.</p>
         `;
-        await sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody);
+        sendEmailNotification(webinar.organizer_email, `New Registration: ${webinar.title}`, consultantEmailBody).catch(console.error);
       }
     }
 
